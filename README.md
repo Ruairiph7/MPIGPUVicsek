@@ -1,0 +1,1 @@
+Did CUDA, then MPI. Need to set CUDA.runtime_version; take from nvidia-smi//maybe module avail/load stuff. For MPI, need to use MPIPreferences to set to system version.. Then do Pkg.build for MPI, plus instantiate and precompile

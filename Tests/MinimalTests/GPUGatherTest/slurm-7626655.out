@@ -1,0 +1,5 @@
+Loading openmpi/4.1.6-cuda-12.4
+  Loading requirement: gcc/10.2.0
+Rank 0 using GPU CuDevice(0)
+Rank 1 using GPU CuDevice(1)
+Gathered array size on GPU: (20000,)

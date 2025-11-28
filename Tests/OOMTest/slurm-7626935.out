@@ -1,0 +1,18 @@
+Loading openmpi/4.1.6-cuda-12.4
+  Loading requirement: gcc/10.2.0
+rank 1: initial RSS_kB=331444,   diff_0=331444,   diff=331444
+rank 0: initial RSS_kB=335716,   diff_0=335716,   diff=335716
+rank 1: Before bcast RSS_kB=331880,   diff_0=436,   diff=436
+rank 0: Before bcast RSS_kB=336068,   diff_0=352,   diff=352
+rank 0: Before filtering RSS_kB=342548,   diff_0=6832,   diff=6480
+rank 1: Before filtering RSS_kB=336196,   diff_0=4752,   diff=4316
+rank 1: Before exscan RSS_kB=341468,   diff_0=10024,   diff=5272
+rank 0: Before exscan RSS_kB=343608,   diff_0=7892,   diff=1060
+(rank, local_particle_idxs, N_local, N_offset) = (1, [2], 1, 1)
+(rank, local_particle_idxs, N_local, N_offset) = (0, [1], 1, 0)
+rank 0: Before tuple test RSS_kB=343980,   diff_0=8264,   diff=372
+rank 1: Before tuple test RSS_kB=342020,   diff_0=10576,   diff=552
+rank 0: Before particle test RSS_kB=343980,   diff_0=8264,   diff=0
+rank 1: Before particle test RSS_kB=342020,   diff_0=10576,   diff=0
+rank 1: Final RSS_kB=342020,   diff_0=10576,   diff=0
+rank 0: Final RSS_kB=343980,   diff_0=8264,   diff=0

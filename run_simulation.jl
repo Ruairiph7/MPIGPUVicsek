@@ -6,30 +6,30 @@
 # --------- Perform simulation ---------
 
 function run_simulation(N_total, max_steps;
-    comm=MPI.COMM_WORLD,
-    dt::Float32=0.1f0,
-    R::Float32=Float32(1 / sqrt(π)),
-    Rn::Float32=Float32(1 / sqrt(π)),
-    γ::Float32=0.5f0,
-    γn::Float32=0.5f0,
-    λ::Float32=0.08f0,
-    Lx::Int32=Int32(10),
-    Ly::Int32=Lx,
-    v::Float32=Float32(1 / sqrt(π)),
-    max_num_occupied_cells::Union{Int32,Nothing}=nothing,
-    max_particles_in_cell::Int=640,
-    ArrayType=CuArray,
-    steps_to_save=100,
-    save_outputs=true,
-    save_OPs=true,
-    steps_to_new_OP_file::Int=500000,
-    markersize=0.5,
-    input_files::Union{Nothing,NTuple{3,String}}=nothing,
-    file_name_addon::String="",
-    save_snapshots=true,
-    write_final_coords=true,
-    saving_coords_on_the_go=false,
-    steps_to_save_on_the_go=10)
+        comm=MPI.COMM_WORLD,
+        dt::Float32=0.1f0,
+        R::Float32=Float32(1 / sqrt(π)),
+        Rn::Float32=Float32(1 / sqrt(π)),
+        γ::Float32=0.5f0,
+        γn::Float32=0.5f0,
+        λ::Float32=0.08f0,
+        Lx::Int32=Int32(10),
+        Ly::Int32=Lx,
+        v::Float32=Float32(1 / sqrt(π)),
+        max_num_occupied_cells::Union{Int32,Nothing}=nothing,
+        max_particles_in_cell::Int=640,
+        ArrayType=CuArray,
+        steps_to_save=100,
+        save_outputs=true,
+        save_OPs=true,
+        steps_to_new_OP_file::Int=500000,
+        markersize=0.5,
+        input_files::Union{Nothing,NTuple{3,String}}=nothing,
+        file_name_addon::String="",
+        save_snapshots=true,
+        write_final_coords=true,
+        saving_coords_on_the_go=false,
+        steps_to_save_on_the_go=10)
 
     #Store correct backend
     if ArrayType == CuArray
@@ -46,14 +46,33 @@ function run_simulation(N_total, max_steps;
     #TODO: CHECK THIS
     # # set CUDA device using local rank mapping to avoid colliding GPUs across nodes
     # set_cuda_device_for_rank(comm)
+    # function set_cuda_device_for_rank(comm)
+    # Use shared communicator to get local rank on node
+    local_comm = MPI.Comm_split_type(comm, MPI.COMM_TYPE_SHARED, MPI.Comm_rank(comm))
+    local_rank = MPI.Comm_rank(local_comm)
+    # Bind to local GPU slot
+    CUDA.device!(local_rank)
+    # return local_rank
+    # end
+
 
     #Initialise particles on rank 0 and broadcast to others
-    rs_all, θs_all = nothing, nothing
+    # rs_all, rs_all_flat, θs_all = nothing, nothing, nothing
+    rs_all = Vector{SVector{2,Float32}}(undef,N_total)
+    rs_all_flat = Vector{Float32}(undef,2*N_total)
+    θs_all = Vector{Float32}(undef,N_total)
     if rank == 0
         rs_all, θs_all = initialise_coords(N_total, Lx, Ly, input_files=input_files)
+
+        rs_all_flat = Float32[x for r in rs_all for x in r]
     end
-    rs_all = MPI.Bcast(rs_all, 0, comm)
-    θs_all = MPI.Bcast(θs_all, 0, comm)
+
+    # rs_all_flat = MPI.Bcast(rs_all_flat, 0, comm)
+    MPI.Bcast!(rs_all_flat, 0, comm)
+    rs_all = [SVector{2,Float32}(rs_all_flat[2i-1:2i]) for i in 1:(length(rs_all_flat) ÷ 2)]
+
+    # θs_all = MPI.Bcast(θs_all, 0, comm)
+    MPI.Bcast!(θs_all, 0, comm)
 
     # Characterise local domain
     Lx_local = Lx / nprocs
@@ -69,13 +88,14 @@ function run_simulation(N_total, max_steps;
     θs_filtered = θs_all[local_particle_idxs]
 
     N_local = length(rs_filtered)
-    N_offset = rank == 0 ? 0 : MPI.Exscan(N_local, +, comm)
+    N_offset = MPI.Exscan(N_local, +, comm)
+    rank == 0 && (N_offset = 0)
 
     # Create local particles on device, using N_offset to assign unique IDs that hold globally
     local_particles_gpu = CuArray([
-        Particle(r, θ, N_offset + i)
-        for (i, (r, θ)) in enumerate(zip(rs_filtered, θs_filtered))
-    ])
+                                   Particle(r, θ, Int32(N_offset + i))
+                                   for (i, (r, θ)) in enumerate(zip(rs_filtered, θs_filtered))
+                                  ])
 
     #Initialise cell list parameters
     cell_width = maximum([R, Rn])
@@ -92,13 +112,13 @@ function run_simulation(N_total, max_steps;
     #Initialise dynamic cell lists data structures
     num_occupied_cells = ArrayType([Int32(0)])
     (
-        cell_neighbours_list,
-        cell_address_list,
-        cell_num_particles_list,
-        occupied_cells_particle_IDs,
-        occupied_cells_particle_rs,
-        occupied_cells_particle_θs,
-        occupied_cells_ID_list
+     cell_neighbours_list,
+     cell_address_list,
+     cell_num_particles_list,
+     occupied_cells_particle_IDs,
+     occupied_cells_particle_rs,
+     occupied_cells_particle_θs,
+     occupied_cells_ID_list
     ) = initialise_data_structures(cell_list_params, max_num_occupied_cells, max_particles_in_cell, ArrayType)
 
     #Open file if saving order parameter - will all be handled by rank 0
@@ -128,52 +148,60 @@ function run_simulation(N_total, max_steps;
         ##NOTE: FOR BENCHMARKING
         #times[time_step] = @elapsed begin
 
-        if rank == 0 && time_step % 10000 == 0
+        if rank == 0 && time_step % 1 == 0
             println("Step: " * string(time_step))
         end #if
+
+        @show rank, time_step, local_particles_gpu, x_min, x_max
 
         #Ghost particle exchange to get all interacting particles, store in CuArray "particles"
         ghost_particles_gpu = exchange_ghosts(local_particles_gpu, comm, rank, nprocs, x_min, x_max, R)
         particles = vcat(local_particles_gpu, ghost_particles_gpu)
 
-        #Prepare array to store θ_updates, calculate for all particles then later only use ones in our domain
-        #(greatly simplifies code)
-        θ_updates = initialise_θ_updates(length(particles), ArrayType=ArrayType)
+        if length(local_particles_gpu) != 0
 
-        # Carry out cell lists algorithms
-        #---------------------------------------------#
+            #Prepare array to store θ_updates, calculate for all particles then later only use ones in our domain
+            #(greatly simplifies code)
+            θ_updates = initialise_θ_updates(length(particles), ArrayType=ArrayType)
 
-        #Algorithm 1
-        prep_cell_lists!(cell_address_list, cell_num_particles_list, occupied_cells_ID_list,
-            num_occupied_cells, particles, cell_list_params, backend)
+            # Carry out cell lists algorithms
+            #---------------------------------------------#
+            #Algorithm 1
+            prep_cell_lists!(cell_address_list, cell_num_particles_list, occupied_cells_ID_list,
+                             num_occupied_cells, particles, cell_list_params, backend)
 
-        #Check if we need to update max_num_occupied_cells
-        update_max_num_occupied_cells = check_num_occupied_cells(num_occupied_cells,
-            occupied_cells_particle_IDs, cell_list_params)
-        if update_max_num_occupied_cells != false
-            new_max, max_particles_in_cell = update_max_num_occupied_cells
-            (
-                occupied_cells_particle_IDs,
-                occupied_cells_particle_rs,
-                occupied_cells_particle_θs,
-            ) = reallocate_occupied_cells_lists(new_max, max_particles_in_cell, ArrayType)
-            KernelAbstractions.synchronize(backend)
-        end #if
+            #Check if we need to update max_num_occupied_cells
+            update_max_num_occupied_cells = check_num_occupied_cells(num_occupied_cells,
+                                                                     occupied_cells_particle_IDs, cell_list_params)
+            if update_max_num_occupied_cells != false
+                new_max, max_particles_in_cell = update_max_num_occupied_cells
+                (
+                 occupied_cells_particle_IDs,
+                 occupied_cells_particle_rs,
+                 occupied_cells_particle_θs,
+                ) = reallocate_occupied_cells_lists(new_max, max_particles_in_cell, ArrayType)
+                KernelAbstractions.synchronize(backend)
+            end #if
 
-        #Algorithm 2
-        assign_particles!(occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, cell_address_list, cell_num_particles_list, particles, cell_list_params, backend)
+            #Algorithm 2
+            assign_particles!(occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, cell_address_list, cell_num_particles_list, particles, cell_list_params, backend)
 
-        #Algorithm 3
-        calculate_θ_updates!(θ_updates, cell_neighbours_list, cell_address_list, cell_num_particles_list, occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, occupied_cells_ID_list, γ, dt, R², γn, Rn², Lx, Ly, cell_width, num_occupied_cells, cell_list_params.num_boxes, backend)
+            #Algorithm 3
+            calculate_θ_updates!(θ_updates, cell_neighbours_list, cell_address_list, cell_num_particles_list, occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, occupied_cells_ID_list, γ, dt, R², γn, Rn², Lx, Ly, cell_width, num_occupied_cells, cell_list_params.num_boxes, backend)
 
-        #---------------------------------------------#
+            #---------------------------------------------#
 
-        #NOTE:
-        #TODO:
-        #WARN: CHECK this does correctly still allocate into the particles array:
-        #
-        #Update local particles only
-        update_particles!(view(particles, 1:length(local_particles_gpu)), θ_updates, λ, dt, v, Lx, Ly, CUDABackend())
+            #NOTE:
+            #TODO:
+            #WARN: CHECK this does correctly still allocate into the particles array:
+            #
+            #Update local particles only
+            update_particles!(view(particles, 1:length(local_particles_gpu)), θ_updates, λ, dt, v, Lx, Ly, CUDABackend())
+
+        else # -> length(local_particles_gpu) = 0
+            # @show rank, "no local particles"
+        end #if length(local_particles_gpu) != 0
+
 
         #NOTE:
         #TODO:
@@ -181,9 +209,7 @@ function run_simulation(N_total, max_steps;
         #  
         #Migrate particles that have moved domains
         # local_particles_gpu = exchange_migrants!(local_particles_gpu, comm, rank, nprocs, x_min, x_max)
-        local_particles_gpu = exchange_migrants!(view(particles, 1:length(local_particles_gpu)), comm, rank, nprocs, x_min, x_max)
-
-
+        local_particles_gpu = exchange_migrants!(view(particles, 1:length(local_particles_gpu)), comm, rank, nprocs, x_min, x_max, cell_width)
 
 
         #NOTE:
@@ -219,18 +245,19 @@ function run_simulation(N_total, max_steps;
             close(OP_m_file)
             close(OP_S_file)
         end #if save_OPs
-        if write_final_coords
-            rs, θs = unpack_coords(Array(particles))
-            writedlm("final_xs_" * file_name_addon * ".txt", [rs[i][1] for i = 1:N])
-            writedlm("final_ys_" * file_name_addon * ".txt", [rs[i][2] for i = 1:N])
-            writedlm("final_thetas_" * file_name_addon * ".txt", θs)
-        end #if
+        #WARN: Below fails as I need to first collect particles onto rank 0 (-> fix if needed)
+        # if write_final_coords
+        #     rs, θs = unpack_coords(Array(particles))
+        #     writedlm("final_xs_" * file_name_addon * ".txt", [rs[i][1] for i = 1:N])
+        #     writedlm("final_ys_" * file_name_addon * ".txt", [rs[i][2] for i = 1:N])
+        #     writedlm("final_thetas_" * file_name_addon * ".txt", θs)
+        # end #if
 
     end #if (rank == 0)
 
     ##NOTE: FOR BENCHMARKING
     #return times
-    #
+
     MPI.Barrier(comm)
     return nothing
 end #function

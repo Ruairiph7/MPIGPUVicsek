@@ -1,5 +1,4 @@
 using StaticArrays
-using CUDA
 
 # --------- Data structures ---------
 
@@ -8,13 +7,8 @@ struct Particle
     θ::Float32
     uid::Int32 #"Unique id"
 end
-Particle(r, θ, uid) = Particle(r, θ, uid)
 
 # --------- Initialise particles ---------
-
-function initialise_θ_updates(N; ArrayType=CuArray)
-    return ArrayType(zeros(Float32, N))
-end #function
 
 # Initialise just coordinates - used for MPI version
 function initialise_coords(N, Lx, Ly=Lx; input_files::Union{Nothing,NTuple{3,String}}=nothing)
@@ -39,11 +33,13 @@ end #function
 function unpack_coords(particles_array::Array{Particle})
     rs = zeros(SVector{2,Float32}, length(particles_array))
     θs = zeros(Float32, length(particles_array))
+    uids = zeros(Int32, length(particles_array))
     @inbounds for i = 1:length(particles_array)
         particle_i = particles_array[i]
         rs[i] = particle_i.r
         θs[i] = particle_i.θ
+        uids[i] = particle_i.uid
     end #for i
-    return rs, θs
+    return rs, θs, uids
 end #function
 

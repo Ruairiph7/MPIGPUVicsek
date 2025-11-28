@@ -11,7 +11,7 @@ function run_simulation(N_total, max_steps;
         R::Float32=Float32(1 / sqrt(π)),
         Rn::Float32=Float32(1 / sqrt(π)),
         γ::Float32=0.5f0,
-        γn::Float32=0.5f0,
+        γn::Float32=0.0f0,
         λ::Float32=0.08f0,
         Lx::Int32=Int32(10),
         Ly::Int32=Lx,
@@ -122,6 +122,8 @@ function run_simulation(N_total, max_steps;
     ) = initialise_data_structures(cell_list_params, max_num_occupied_cells, max_particles_in_cell, ArrayType)
 
     #Open file if saving order parameter - will all be handled by rank 0
+    OP_m_file = nothing
+    OP_S_file = nothing
     if rank == 0
         if save_snapshots
             plots_dir = "plots/"
@@ -131,8 +133,8 @@ function run_simulation(N_total, max_steps;
             OP_dir = "OPs/"
             mkpath(OP_dir)
             OP_file_number = 1
-            OP_m_file = open("OP_m_" * file_name_addon * "_1.txt", "w")
-            OP_S_file = open("OP_S_" * file_name_addon * "_1.txt", "w")
+            OP_m_file = open(OP_dir*"OP_m_" * file_name_addon * "_1.txt", "w")
+            OP_S_file = open(OP_dir*"OP_S_" * file_name_addon * "_1.txt", "w")
         end #if save_OPs
     end #if
 
@@ -143,16 +145,17 @@ function run_simulation(N_total, max_steps;
     ##NOTE: FOR BENCHMARKING
     #times = zeros(max_steps)
 
+    steps_to_log = maximum((max_steps ÷ 10,1))
     for time_step = 1:max_steps
 
         ##NOTE: FOR BENCHMARKING
         #times[time_step] = @elapsed begin
 
-        if rank == 0 && time_step % 1 == 0
+        if rank == 0 && time_step % steps_to_log == 0
             println("Step: " * string(time_step))
         end #if
 
-        @show rank, time_step, local_particles_gpu, x_min, x_max
+        # @show rank, time_step, local_particles_gpu, x_min, x_max
 
         #Ghost particle exchange to get all interacting particles, store in CuArray "particles"
         ghost_particles_gpu = exchange_ghosts(local_particles_gpu, comm, rank, nprocs, x_min, x_max, R)
@@ -217,19 +220,19 @@ function run_simulation(N_total, max_steps;
         #WARN:NEED TO MAKE PLOTTING WORK WITH MPI -- SEND ALL PARTICLES TO ONE RANK OR MAYBE DO STUFF LOCALLY, WRITE COORDS LOCALLY (with particle ids) WITHOUT COMMINICATING
         #Could be better to do this, or to put stuff on CPU then move particles to one rank in order to ensure it can handle the memory cost (GPU has less memory than CPU?)
         if saving_coords_on_the_go
-            save_coords(time_step, saving_coords_on_the_go, steps_to_save_on_the_go, file_name_addon, local_particles_gpu, rank)
+            save_coords(time_step, steps_to_save_on_the_go, file_name_addon, local_particles_gpu, rank)
         end #if
 
         if save_outputs
-            save_plots_and_OPs(time_step, save_outputs, steps_to_save, local_particles_gpu, save_snapshots, save_OPs, file_name_addon, markersize, OP_m_file, OP_S_file, rank, comm)
+            save_plots_and_OPs(time_step, steps_to_save, local_particles_gpu, save_snapshots, save_OPs, file_name_addon, markersize, Lx, Ly, dt, OP_m_file, OP_S_file, rank, comm)
         end #if
 
         if rank == 0 && time_step % steps_to_new_OP_file == 0
             OP_file_number = OP_file_number + 1
             close(OP_m_file)
             close(OP_S_file)
-            OP_m_file = open("OP_m_" * file_name_addon * "_" * string(OP_file_number) * ".txt", "w")
-            OP_S_file = open("OP_S_" * file_name_addon * "_" * string(OP_file_number) * ".txt", "w")
+            OP_m_file = open(OP_dir * "OP_m_" * file_name_addon * "_" * string(OP_file_number) * ".txt", "w")
+            OP_S_file = open(OP_dir * "OP_S_" * file_name_addon * "_" * string(OP_file_number) * ".txt", "w")
         end #if time_step
 
         KernelAbstractions.synchronize(backend)

@@ -1,3 +1,5 @@
+using CUDA
+
 # --------- Data structures ---------
 
 struct CellListParams
@@ -105,6 +107,10 @@ function build_cell_neighbours(params::CellListParams)
 end #function
 
 # --------- Initialise data structures ---------
+
+function initialise_θ_updates(N; ArrayType=CuArray)
+    return ArrayType(zeros(Float32, N))
+end #function
 
 function initialise_data_structures(params::CellListParams, max_num_occupied_cells, max_particles_in_cell, ArrayType)
     neighbours = build_cell_neighbours_list(params, ArrayType)

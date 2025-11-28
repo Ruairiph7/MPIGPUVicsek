@@ -1,3 +1,6 @@
+@warn "HAVE workgroup_size HARD CODED AT 640"
+
+
 #NOTE:
 #TODO:
 #WARN: NEED TO ENSURE THAT WE ONLY CALCULATE Θ UPDATES FOR cells within our domain, not the ghost particle cells. --> possibly implement by restricting occupied_cells_lists and num_occupied_cells to number of occupied cells within our domain. Then also change argument num_cells to number of cells within the domain (i.e. cell_list_params.num_boxes - 2*num_boxes_y?)

@@ -21,7 +21,7 @@
     end #for j
 end #function
 
-function extract_ghosts(particles, x_min, x_max, R, bufs)
+function extract_ghosts!(bufs, particles, x_min, x_max, R)
     n = length(particles)
     if n == 0
         return (CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0))
@@ -48,18 +48,18 @@ end #function
 # Ghost particle exchange (GPU-only serialisation)
 # ------------------------------------------------------------
 
-function exchange_ghosts(local_particles_gpu, comm, rank, nprocs, x_min, x_max, R, bufs)
+function exchange_ghosts!(particles, local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs, mpi_bufs)
     left_rank = (rank == 0) ? nprocs - 1 : rank - 1
     right_rank = (rank == nprocs - 1) ? 0 : rank + 1
+    num_local_particles = length(local_particles)
 
     # 1. Identify ghosts
-    ghosts_left, ghosts_right = extract_ghosts(local_particles_gpu, x_min, x_max, R, bufs)
+    ghosts_left_view, ghosts_right_view = extract_ghosts!(ghost_bufs, local_particles, x_min, x_max, R)
 
     # 2. Serialize on device
-    send_left_buf = pack_particles_to_f32(ghosts_left)
-    send_left_count = Ref{Int32}(length(send_left_buf))
-    send_right_buf = pack_particles_to_f32(ghosts_right)
-    send_right_count = Ref{Int32}(length(send_right_buf))
+    send_left_count, send_right_count = pack_particles_to_f32!(mpi_bufs, ghosts_left_view, ghosts_right_view)
+    send_left_buf = view(mpi_bufs.send_left_buf, 1:getindex(send_left_count))
+    send_right_buf = view(mpi_bufs.send_right_buf, 1:getindex(send_right_count))
 
     # 3. Exchange counts with neighbors (host-level small messages)
     recv_left_count = Ref{Int32}(0)
@@ -81,8 +81,8 @@ function exchange_ghosts(local_particles_gpu, comm, rank, nprocs, x_min, x_max, 
 
 
     # allocate receive buffers on GPU
-    recv_left_buf = CuArray{Float32}(undef, recv_left_count[])  # size 0 allowed
-    recv_right_buf = CuArray{Float32}(undef, recv_right_count[])
+    recv_left_buf = view(mpi_bufs.recv_left_buf, 1:getindex(recv_left_count))
+    recv_right_buf = view(mpi_bufs.recv_right_buf, 1:getindex(recv_right_count))
 
     ghost_left_tag = 201
     ghost_right_tag = 202
@@ -99,11 +99,10 @@ function exchange_ghosts(local_particles_gpu, comm, rank, nprocs, x_min, x_max, 
         sendtag=ghost_right_tag,
         recvtag=ghost_right_tag)
 
-    # 5. Deserialize
-    ghosts_left = unpack_f32_to_particles(recv_left_buf)
-    ghosts_right = unpack_f32_to_particles(recv_right_buf)
+    # 5. Deserialize and add into particles after local_particles, return new total
+    num_particles = unpack_f32_to_particles!(particles, num_local_particles, recv_left_buf, recv_right_buf)
 
-    return vcat(ghosts_left, ghosts_right)
+    return num_particles
 end
 
 

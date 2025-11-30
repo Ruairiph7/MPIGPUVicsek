@@ -2,13 +2,11 @@ include("./particles.jl")
 
 # ------------------- Ghost particles ----------------------
 mutable struct GhostBuffers
-    flags::CuArray{Int32}
     lefts::CuArray{Particle}
     rights::CuArray{Particle}
     counters::CuArray{Int32}
 end #struct
 GhostBuffers(max_particles::Int) = GhostBuffers(
-    CuArray{Int32}(undef, max_particles),
     CuArray{Particle}(undef, max_particles),
     CuArray{Particle}(undef, max_particles),
     CuArray(zeros(Float32, 2))
@@ -28,3 +26,16 @@ MigrantBuffers(max_particles::Int) = MigrantBuffers(
     CuArray(zeros(Float32, 3))
 )
 
+# ------------------- MPI Send/Recv Buffers ----------------------
+mutable struct SendRecvBuffers
+    send_left_buf::CuArray{Float32}
+    send_right_buf::CuArray{Float32}
+    recv_left_buf::CuArray{Float32}
+    recv_right_buf::CuArray{Float32}
+end #struct
+SendRecvBuffers(buf_lengths::Int) = SendRecvBuffers(
+    CuArray{Float32}(undef, buf_lengths),
+    CuArray{Float32}(undef, buf_lengths),
+    CuArray{Float32}(undef, buf_lengths),
+    CuArray{Float32}(undef, buf_lengths)
+)

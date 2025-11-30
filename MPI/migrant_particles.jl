@@ -30,7 +30,7 @@
     end #for i
 end
 
-function sort_migrants(particles, x_min, x_max, cell_width, bufs)
+function sort_migrants!(bufs, particles, x_min, x_max, cell_width)
     n = length(particles)
     if n == 0
         return (CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0))
@@ -55,19 +55,17 @@ end
 # ------------------------------------------------------------
 # Migration exchange between ranks
 # ------------------------------------------------------------
-
-function exchange_migrants!(local_particles_gpu, comm, rank, nprocs, x_min, x_max, cell_width, bufs)
+function exchange_migrants!(particles, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs, mpi_bufs)
     left_rank = (rank == 0) ? nprocs - 1 : rank - 1
     right_rank = (rank == nprocs - 1) ? 0 : rank + 1
 
     # 1. GPU-only detection + compaction of migrants
-    stayers, migrants_left, migrants_right = sort_migrants(local_particles_gpu, x_min, x_max, cell_width, bufs)
+    stayers_view, migrants_left_view, migrants_right_view = sort_migrants!(migrant_bufs, local_particles, x_min, x_max, cell_width)
 
     # 2. Serialize migrants
-    send_left_buf = pack_particles_to_f32(migrants_left)
-    send_left_count = Ref{Int32}(length(send_left_buf))
-    send_right_buf = pack_particles_to_f32(migrants_right)
-    send_right_count = Ref{Int32}(length(send_right_buf))
+    send_left_count, send_right_count = pack_particles_to_f32!(mpi_bufs, migrants_left_view, migrants_right_view)
+    send_left_buf = view(mpi_bufs.send_left_buf, 1:getindex(send_left_count))
+    send_right_buf = view(mpi_bufs.send_right_buf, 1:getindex(send_right_count))
 
     # 3. Count exchange
     recv_left_count = Ref{Int32}(0)
@@ -88,8 +86,8 @@ function exchange_migrants!(local_particles_gpu, comm, rank, nprocs, x_min, x_ma
         recvtag=migrant_count_right_tag)
 
     # 4. Allocate recv buffers on GPU
-    recv_left_buf = CuArray{Float32}(undef, recv_left_count[])
-    recv_right_buf = CuArray{Float32}(undef, recv_right_count[])
+    recv_left_buf = view(mpi_bufs.recv_left_buf, 1:getindex(recv_left_count))
+    recv_right_buf = view(mpi_bufs.recv_right_buf, 1:getindex(recv_right_count))
 
     migrant_left_tag = 401
     migrant_right_tag = 402
@@ -108,12 +106,12 @@ function exchange_migrants!(local_particles_gpu, comm, rank, nprocs, x_min, x_ma
         recvtag=migrant_right_tag)
 
 
-    # 6. Deserialize on device
-    incoming_left = unpack_f32_to_particles(recv_left_buf)
-    incoming_right = unpack_f32_to_particles(recv_right_buf)
+    # 6. Load stayers into the beginning of particles
+    num_stayers = length(stayers_view)
+    particles[1:num_stayers] .= stayers_view
 
-    # 7. Rebuild local set
-    return vcat(stayers, incoming_left, incoming_right)
+    # 7. Deserialize and add migrants into particles after stayers, return new num_local_particles
+    num_local_particles = unpack_f32_to_particles!(particles, num_stayers, recv_left_buf, recv_right_buf)
+
+    return num_local_particles
 end
-
-

@@ -17,6 +17,7 @@ function run_simulation(N_total, max_steps;
     v::Float32=Float32(1 / sqrt(π)),
     max_num_occupied_cells::Union{Int32,Nothing}=nothing,
     max_particles_per_rank::Union{Int32,Nothing}=nothing,
+    max_sendrecv_particles::Union{Int32,Nothing}=nothing,
     max_particles_in_cell::Int=64,
     ArrayType=CuArray,
     steps_to_save=100,
@@ -63,6 +64,7 @@ function run_simulation(N_total, max_steps;
     #Set max_num_occupied_cells
     if isnothing(max_num_occupied_cells)
         max_num_occupied_cells = ceil(Int32, 4 * cell_list_params.num_boxes / 7)
+        @show max_num_occupied_cells
     end #if isnothing()
 
     #Initialise dynamic cell lists data structures
@@ -80,11 +82,22 @@ function run_simulation(N_total, max_steps;
     #Set max_particles_per_rank
     if isnothing(max_particles_per_rank)
         max_particles_per_rank = ceil(Int32, 1.5 * N_total / nprocs)
+        @show max_particles_per_rank
     end #if isnothing()
 
+    #Set max_sendrecv_particles - i.e. maximum ghosts/migrants in a given direction
+    if isnothing(max_sendrecv_particles)
+        max_sendrecv_particles = ceil(Int32, max_particles_in_cell * cell_list_params.num_boxes_y)
+        @show max_sendrecv_particles
+    end #if isnothing()
+    sendrecv_buf_length = 4 * max_sendrecv_particles #(Buffers are serialised)
+
     #Initialse buffers to track ghost and migrant particles
-    ghost_bufs = GhostBuffers(max_particles_per_rank)
-    migrant_bufs = MigrantBuffers(max_particles_per_rank)
+    ghost_bufs = GhostBuffers(max_sendrecv_particles)
+    migrant_bufs = MigrantBuffers(max_sendrecv_particles)
+
+    #Initialise buffers to sendrecv ghost and migrant particles
+    sendrecv_bufs = SendRecvBuffers(sendrecv_buf_length)
 
     #Initialise array to store particles, the first num_local_particles entries corresponding to those in our local domain
     particles, num_local_particles = initialise_particles(max_particles_per_rank, x_min, x_max, N_total, Lx, Ly, input_files, rank, comm)
@@ -124,12 +137,8 @@ function run_simulation(N_total, max_steps;
             println("Step: " * string(time_step))
         end #if
 
-        #Ghost particle exchange to get all interacting particles, store in CuArray "particles"
-        ghost_particles = exchange_ghosts(local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs)
-
-        num_ghosts = length(ghost_particles)
-        num_particles = num_local_particles + num_ghosts
-        particles[num_local_particles+1:num_particles] .= ghost_particles
+        #Ghost particle exchange to get all interacting particles, store as first num_particles elements in particles
+        num_particles = exchange_ghosts!(particles, local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs, sendrecv_bufs)
 
         if num_local_particles != 0
 
@@ -181,14 +190,12 @@ function run_simulation(N_total, max_steps;
             # @show rank, "no local particles"
         end #if num_local_particles != 0
 
-
         #Migrate particles that have moved domains
-        new_local_particles = exchange_migrants!(local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs)
-        num_local_particles = length(new_local_particles)
-
-        particles[1:num_local_particles] .= new_local_particles
+        num_local_particles = exchange_migrants!(particles, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs, sendrecv_bufs)
         local_particles = view(particles, 1:num_local_particles)
 
+        #Deal with outputs
+        #---------------------------------------------#
         if saving_coords_on_the_go
             save_coords(time_step, steps_to_save_on_the_go, file_name_addon, local_particles, rank)
         end #if
@@ -204,6 +211,7 @@ function run_simulation(N_total, max_steps;
             OP_m_file = open(OP_dir * "OP_m_" * file_name_addon * "_" * string(OP_file_number) * ".txt", "w")
             OP_S_file = open(OP_dir * "OP_S_" * file_name_addon * "_" * string(OP_file_number) * ".txt", "w")
         end #if time_step
+        #---------------------------------------------#
 
         KernelAbstractions.synchronize(backend)
 

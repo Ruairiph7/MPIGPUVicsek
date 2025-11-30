@@ -24,12 +24,6 @@ end
 
 # --------- Cell List Functions ---------
 
-#NOTE:
-#TODO:
-#WARN: NEED TO CHECK IT WORKS for periodic boundaries
-#i.e. if rank=0 or nprocs-1, then we need to subtract/add to r when dealing with ghost particles from periodic neighbours
-#Note that our cell lists are for a grid of our domain with extra cells either side
-#ALSO need to check if the rest of the code works correctly in this case
 function get_cell_ID(r, params::CellListParams)
     if r[1] > params.x_end #We're on rank 0 and r has wrapped round to the end of the domain
         x_idx = Int32(1)

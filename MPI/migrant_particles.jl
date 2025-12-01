@@ -1,12 +1,11 @@
-@warn "extract_ghosts workgroup_size, num_workgroups hard-coded at 256"
-
 # ------------------------------------------------------------
 # GPU Migrant detection
 # ------------------------------------------------------------
 
 @kernel function sort_migrants_kernel!(stayers, lefts, rights, counters, @Const(particles), x_min, x_max, cell_width, n)
     I = @index(Global)
-    stride = @ndrange()
+    # stride = @ndrange()
+    stride = 256*256
 
     for i = I:stride:n
         p = particles[i]

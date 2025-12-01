@@ -44,6 +44,16 @@ function run_simulation(N_total, max_steps;
     rank = MPI.Comm_rank(comm)
     nprocs = MPI.Comm_size(comm)
 
+    if rank == 0
+        @warn "assign_particles! workgroup_size, num_workgroups hard-coded at 256"
+        @warn "prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256"
+        @warn "update_particles! workgroup_size, num_workgroups hard-coded at 256"
+        @warn "extract_ghosts workgroup_size, num_workgroups hard-coded at 256"
+        @warn "extract_migrants workgroup_size, num_workgroups hard-coded at 256"
+        @warn "(de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256"
+        @warn "HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64"
+    end #if (rank == 0)
+
     #TODO: CHECK THIS
     # # set CUDA device using local rank mapping to avoid colliding GPUs across nodes
     # Use shared communicator to get local rank on node
@@ -64,7 +74,7 @@ function run_simulation(N_total, max_steps;
     #Set max_num_occupied_cells
     if isnothing(max_num_occupied_cells)
         max_num_occupied_cells = ceil(Int32, 4 * cell_list_params.num_boxes / 7)
-        @show max_num_occupied_cells
+        @show rank, max_num_occupied_cells
     end #if isnothing()
 
     #Initialise dynamic cell lists data structures
@@ -81,14 +91,14 @@ function run_simulation(N_total, max_steps;
 
     #Set max_particles_per_rank
     if isnothing(max_particles_per_rank)
-        max_particles_per_rank = ceil(Int32, 1.5 * N_total / nprocs)
-        @show max_particles_per_rank
+        max_particles_per_rank = maximum((ceil(Int32, 2 * N_total / nprocs),Int32(10000)))
+        @show rank, max_particles_per_rank
     end #if isnothing()
 
     #Set max_sendrecv_particles - i.e. maximum ghosts/migrants in a given direction
     if isnothing(max_sendrecv_particles)
         max_sendrecv_particles = ceil(Int32, max_particles_in_cell * cell_list_params.num_boxes_y)
-        @show max_sendrecv_particles
+        @show rank, max_sendrecv_particles
     end #if isnothing()
     sendrecv_buf_length = 4 * max_sendrecv_particles #(Buffers are serialised)
 
@@ -131,7 +141,7 @@ function run_simulation(N_total, max_steps;
     Rn² = Rn^2
 
     steps_to_log = maximum((max_steps ÷ 10, 1))
-    steps_to_lower_max_num_occupied_cells = maximum(max_steps ÷ 10, 100000)
+    steps_to_lower_max_num_occupied_cells = maximum((max_steps ÷ 10, 100000))
     for time_step = 1:max_steps
         if rank == 0 && time_step % steps_to_log == 0
             println("Step: " * string(time_step))
@@ -150,14 +160,14 @@ function run_simulation(N_total, max_steps;
 
             #Check if we can lower max_num_occupied_cells at regular intervals
             if time_step % steps_to_lower_max_num_occupied_cells == 0
-                lower_max_num_occupied_cells = lower_max_num_occupied_cells(num_occupied_cells, occupied_cells_particle_IDs, cell_list_params)
+                lower_max_num_occupied_cells = lower_max_num_occupied_cells_check(num_occupied_cells, occupied_cells_particle_IDs, cell_list_params)
                 if lower_max_num_occupied_cells != false
                     new_max, max_particles_in_cell = lower_max_num_occupied_cells
                     (
                         occupied_cells_particle_IDs,
                         occupied_cells_particle_rs,
                         occupied_cells_particle_θs,
-                    ) = reallocate_occupied_cells_lists(new_max, max_particles_in_cell, ArrayType)
+                    ) = reallocate_occupied_cells_lists(new_max, max_particles_in_cell, rank, ArrayType)
                     KernelAbstractions.synchronize(backend)
                 end #if lower_max_num_occupied_cells
             end #if time_step
@@ -171,7 +181,7 @@ function run_simulation(N_total, max_steps;
                     occupied_cells_particle_IDs,
                     occupied_cells_particle_rs,
                     occupied_cells_particle_θs,
-                ) = reallocate_occupied_cells_lists(new_max, max_particles_in_cell, ArrayType)
+                ) = reallocate_occupied_cells_lists(new_max, max_particles_in_cell, rank, ArrayType)
                 KernelAbstractions.synchronize(backend)
             end #if
 

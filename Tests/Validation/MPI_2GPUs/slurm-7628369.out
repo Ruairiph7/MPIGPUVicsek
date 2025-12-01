@@ -1,0 +1,134 @@
+Loading openmpi/4.1.6-cuda-12.4
+  Loading requirement: gcc/10.2.0
+┌ Warning: prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/prep_cell_lists.jl:1
+┌ Warning: prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/prep_cell_lists.jl:1
+┌ Warning: assign_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/assign_particles.jl:1
+┌ Warning: assign_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/assign_particles.jl:1
+┌ Warning: HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/calculate_theta_updates.jl:1
+┌ Warning: HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/calculate_theta_updates.jl:1
+┌ Warning: update_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/update_particles.jl:1
+┌ Warning: update_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/update_particles.jl:1
+┌ Warning: (de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/send_recv_functions.jl:1
+┌ Warning: (de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/send_recv_functions.jl:1
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/ghost_particles.jl:1
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/ghost_particles.jl:1
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/migrant_particles.jl:1
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/migrant_particles.jl:1
+max_num_occupied_cells = 28
+max_num_occupied_cells = 28
+max_particles_per_rank = 1
+max_sendrecv_particles = 512
+max_particles_per_rank = 1
+max_sendrecv_particles = 512
+Step: 100
+Step: 200
+Step: 300
+Step: 400
+Step: 500
+Step: 600
+Step: 700
+Step: 800
+Step: 900
+Step: 1000
+max_num_occupied_cells = 28
+max_num_occupied_cells = 28
+max_particles_per_rank = 2
+max_particles_per_rank = 2
+max_sendrecv_particles = 512
+max_sendrecv_particles = 512
+Step: 100
+Step: 200
+Step: 300
+Step: 400
+Step: 500
+Step: 600
+Step: 700
+Step: 800
+Step: 900
+Step: 1000
+max_num_occupied_cells = 380
+max_num_occupied_cells = 380
+max_particles_per_rank = 500
+max_sendrecv_particles = 2240
+max_particles_per_rank = 500
+max_sendrecv_particles = 2240
+Step: 10000
+Step: 20000
+Step: 30000
+Step: 40000
+Step: 50000
+Step: 60000
+Step: 70000
+Step: 80000
+Step: 90000
+Step: 100000
+Updating max_num_occupied_cells to 107
+Updating max_num_occupied_cells to 172
+max_num_occupied_cells = 380
+max_num_occupied_cells = 380
+max_particles_per_rank = 500
+max_sendrecv_particles = 2240
+max_particles_per_rank = 500
+max_sendrecv_particles = 2240
+Step: 10000
+Step: 20000
+Step: 30000
+Step: 40000
+Step: 50000
+Step: 60000
+Step: 70000
+Step: 80000
+Step: 90000
+Step: 100000
+Updating max_num_occupied_cells to 202
+Updating max_num_occupied_cells to 204
+max_num_occupied_cells = 380
+max_num_occupied_cells = 380
+max_particles_per_rank = 500
+max_sendrecv_particles = 2240
+max_particles_per_rank = 500
+max_sendrecv_particles = 2240
+Step: 10000
+Step: 20000
+Step: 30000
+Step: 40000
+Step: 50000
+Step: 60000
+Step: 70000
+Step: 80000
+Step: 90000
+Step: 100000
+Updating max_num_occupied_cells to 210
+Updating max_num_occupied_cells to 190
+max_num_occupied_cells = 380
+max_num_occupied_cells = 380
+max_particles_per_rank = 500
+max_sendrecv_particles = 2240
+max_particles_per_rank = 500
+max_sendrecv_particles = 2240
+Step: 10000
+Step: 20000
+Step: 30000
+Step: 40000
+Step: 50000
+Step: 60000
+Step: 70000
+Step: 80000
+Step: 90000
+Step: 100000
+Updating max_num_occupied_cells to 235
+Updating max_num_occupied_cells to 225

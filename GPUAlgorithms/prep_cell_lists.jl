@@ -1,5 +1,3 @@
-@warn "prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256"
-
 # --------- Calculate num occupied cells, and assign addresses (Algorithm 1) ---------
 
 function prep_cell_lists!(cell_address_list, cell_num_particles_list, occupied_cells_ID_list, num_occupied_cells, particles, cell_list_params, num_particles)
@@ -17,7 +15,8 @@ end #function
 
 @kernel function prep_cell_lists_kernel!(cell_address_list, cell_num_particles_list, occupied_cells_ID_list, num_occupied_cells, @Const(particles), cell_list_params, num_particles)
     I = @index(Global, Linear)
-    stride = @ndrange()
+    # stride = @ndrange()
+    stride = 256*256
 
     for i = I:stride:num_particles
         r_i = particles[i].r

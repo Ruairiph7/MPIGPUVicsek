@@ -1,5 +1,3 @@
-@warn "update_particles! workgroup_size, num_workgroups hard-coded at 256"
-
 # --------- Update particles ---------
 
 function update_particles!(particles, θ_updates, λ, dt, v, Lx, Ly)
@@ -18,7 +16,8 @@ end #function
 
 @kernel function update_particles_kernel!(particles, @Const(θ_updates), λ, dt, v, Lx, Ly, @Const(rand1), @Const(rand2), num_particles)
     I = @index(Global, Linear)
-    stride = @ndrange()
+    # stride = @ndrange()
+    stride = 256*256
 
     for i = I:stride:num_particles
         this_particle = particles[i]

@@ -1,4 +1,4 @@
-include("../main.jl")
+include("/mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/main.jl")
 
 MPI.Init()
 

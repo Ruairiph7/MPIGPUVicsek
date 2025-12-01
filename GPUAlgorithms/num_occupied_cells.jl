@@ -12,10 +12,10 @@ function check_num_occupied_cells(num_occupied_cells, occupied_cells_particle_ID
 end #function
 
 # New function used to lower max_num_occupied_cells after many steps
-function lower_max_num_occupied_cells(num_occupied_cells, occupied_cells_particle_IDs, cell_list_params)
+function lower_max_num_occupied_cells_check(num_occupied_cells, occupied_cells_particle_IDs, cell_list_params)
     CUDA.@allowscalar num_occupied = num_occupied_cells[1]
     old_max, max_particles_in_cell = size(occupied_cells_particle_IDs)
-    new_max = minimum([ceil(Int32, 1.1 * num_occupied), cell_list_params.num_boxes])
+    new_max = minimum([ceil(Int32, 1.3 * num_occupied), cell_list_params.num_boxes])
     if new_max < old_max
         return new_max, Int32(max_particles_in_cell)
     else
@@ -23,8 +23,8 @@ function lower_max_num_occupied_cells(num_occupied_cells, occupied_cells_particl
     end #if
 end #function
 
-function reallocate_occupied_cells_lists(new_max, max_particles_in_cell, ArrayType)
-    println("Updating max_num_occupied_cells to " * string(new_max))
+function reallocate_occupied_cells_lists(new_max, max_particles_in_cell, rank, ArrayType)
+    println("Rank " * string(rank) * ": Updating max_num_occupied_cells to " * string(new_max))
     IDs = build_occupied_cells_particle_IDs(new_max, max_particles_in_cell, ArrayType)
     rs = build_occupied_cells_particle_rs(new_max, max_particles_in_cell, ArrayType)
     θs = build_occupied_cells_particle_θs(new_max, max_particles_in_cell, ArrayType)

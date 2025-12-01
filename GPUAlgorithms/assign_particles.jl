@@ -1,5 +1,3 @@
-@warn "assign_particles! workgroup_size, num_workgroups hard-coded at 256"
-
 # --------- Locate particles to cells (Algorithm 2) ---------
 function assign_particles!(occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, cell_address_list, cell_num_particles_list, particles, cell_list_params, num_particles)
     cell_num_particles_list .= Int32(0)
@@ -15,7 +13,8 @@ end
 
 @kernel function assign_particles_kernel!(occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, @Const(cell_address_list), cell_num_particles_list, @Const(particles), cell_list_params, num_particles)
     I = @index(Global, Linear)
-    stride = @ndrange()
+    # stride = @ndrange()
+    stride = 256*256
 
     for i = I:stride:num_particles
         particle_i = particles[i]

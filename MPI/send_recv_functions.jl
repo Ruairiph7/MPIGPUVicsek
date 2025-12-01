@@ -1,12 +1,10 @@
-@warn "(de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256"
-
 ###############################################
 # Packing particles → Float32 buffer on GPU
 ###############################################
 
 @kernel function serialize_kernel!(out, @Const(particles), size)
     I = @index(Global)
-    stride = @ndrange()
+    stride = 256*256
 
     for i = I:stride:size
         p = particles[i]
@@ -48,7 +46,7 @@ end
 
 @kernel function deserialize_kernel!(out, @Const(buf), size)
     I = @index(Global)
-    stride = @ndrange()
+    stride = 256*256
 
     for i = I:stride:size
         base = 4 * (i - 1)

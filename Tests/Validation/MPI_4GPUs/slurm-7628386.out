@@ -1,0 +1,234 @@
+Loading openmpi/4.1.6-cuda-12.4
+  Loading requirement: gcc/10.2.0
+┌ Warning: assign_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:48
+┌ Warning: prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:49
+┌ Warning: update_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:50
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:51
+┌ Warning: extract_migrants workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:52
+┌ Warning: (de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:53
+┌ Warning: HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:54
+(rank, max_num_occupied_cells) = (3, 19)
+(rank, max_num_occupied_cells) = (1, 19)
+(rank, max_num_occupied_cells) = (2, 19)
+(rank, max_num_occupied_cells) = (0, 19)
+(rank, max_particles_per_rank) = (3, 10000)
+(rank, max_sendrecv_particles) = (3, 512)
+(rank, max_particles_per_rank) = (2, 10000)
+(rank, max_sendrecv_particles) = (2, 512)
+(rank, max_particles_per_rank) = (1, 10000)
+(rank, max_sendrecv_particles) = (1, 512)
+(rank, max_particles_per_rank) = (0, 10000)
+(rank, max_sendrecv_particles) = (0, 512)
+Step: 100
+Step: 200
+Step: 300
+Step: 400
+Step: 500
+Step: 600
+Step: 700
+Step: 800
+Step: 900
+Step: 1000
+┌ Warning: assign_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:48
+┌ Warning: prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:49
+┌ Warning: update_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:50
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:51
+┌ Warning: extract_migrants workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:52
+┌ Warning: (de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:53
+┌ Warning: HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:54
+(rank, max_num_occupied_cells) = (0, 19)
+(rank, max_num_occupied_cells) = (2, 19)
+(rank, max_num_occupied_cells) = (3, 19)
+(rank, max_num_occupied_cells) = (1, 19)
+(rank, max_particles_per_rank) = (3, 10000)
+(rank, max_particles_per_rank) = (0, 10000)
+(rank, max_sendrecv_particles) = (0, 512)
+(rank, max_particles_per_rank) = (1, 10000)
+(rank, max_particles_per_rank) = (2, 10000)
+(rank, max_sendrecv_particles) = (2, 512)
+(rank, max_sendrecv_particles) = (3, 512)
+(rank, max_sendrecv_particles) = (1, 512)
+Step: 100
+Step: 200
+Step: 300
+Step: 400
+Step: 500
+Step: 600
+Step: 700
+Step: 800
+Step: 900
+Step: 1000
+┌ Warning: assign_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:48
+┌ Warning: prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:49
+┌ Warning: update_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:50
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:51
+┌ Warning: extract_migrants workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:52
+┌ Warning: (de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:53
+┌ Warning: HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:54
+(rank, max_num_occupied_cells) = (0, 200)
+(rank, max_num_occupied_cells) = (1, 200)
+(rank, max_num_occupied_cells) = (2, 200)
+(rank, max_num_occupied_cells) = (3, 200)
+(rank, max_particles_per_rank) = (2, 10000)
+(rank, max_sendrecv_particles) = (2, 2240)
+(rank, max_particles_per_rank) = (1, 10000)
+(rank, max_sendrecv_particles) = (1, 2240)
+(rank, max_particles_per_rank) = (3, 10000)
+(rank, max_sendrecv_particles) = (3, 2240)
+(rank, max_particles_per_rank) = (0, 10000)
+(rank, max_sendrecv_particles) = (0, 2240)
+Step: 10000
+Step: 20000
+Step: 30000
+Step: 40000
+Step: 50000
+Step: 60000
+Step: 70000
+Step: 80000
+Step: 90000
+Step: 100000
+Rank 3: Updating max_num_occupied_cells to 75
+Rank 1: Updating max_num_occupied_cells to 75
+Rank 2: Updating max_num_occupied_cells to 111
+Rank 0: Updating max_num_occupied_cells to 62
+┌ Warning: assign_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:48
+┌ Warning: prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:49
+┌ Warning: update_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:50
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:51
+┌ Warning: extract_migrants workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:52
+┌ Warning: (de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:53
+┌ Warning: HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:54
+(rank, max_num_occupied_cells) = (0, 200)
+(rank, max_num_occupied_cells) = (1, 200)
+(rank, max_num_occupied_cells) = (3, 200)
+(rank, max_num_occupied_cells) = (2, 200)
+(rank, max_particles_per_rank) = (3, 10000)
+(rank, max_sendrecv_particles) = (3, 2240)
+(rank, max_particles_per_rank) = (0, 10000)
+(rank, max_particles_per_rank) = (1, 10000)
+(rank, max_sendrecv_particles) = (1, 2240)
+(rank, max_particles_per_rank) = (2, 10000)
+(rank, max_sendrecv_particles) = (2, 2240)
+(rank, max_sendrecv_particles) = (0, 2240)
+Step: 10000
+Step: 20000
+Step: 30000
+Step: 40000
+Step: 50000
+Step: 60000
+Step: 70000
+Step: 80000
+Step: 90000
+Step: 100000
+Rank 0: Updating max_num_occupied_cells to 105
+Rank 1: Updating max_num_occupied_cells to 107
+Rank 2: Updating max_num_occupied_cells to 123
+Rank 3: Updating max_num_occupied_cells to 118
+┌ Warning: assign_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:48
+┌ Warning: prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:49
+┌ Warning: update_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:50
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:51
+┌ Warning: extract_migrants workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:52
+┌ Warning: (de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:53
+┌ Warning: HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:54
+(rank, max_num_occupied_cells) = (0, 200)
+(rank, max_num_occupied_cells) = (3, 200)
+(rank, max_num_occupied_cells) = (1, 200)
+(rank, max_num_occupied_cells) = (2, 200)
+(rank, max_particles_per_rank) = (3, 10000)
+(rank, max_sendrecv_particles) = (3, 2240)
+(rank, max_particles_per_rank) = (2, 10000)
+(rank, max_particles_per_rank) = (0, 10000)
+(rank, max_particles_per_rank) = (1, 10000)
+(rank, max_sendrecv_particles) = (1, 2240)
+(rank, max_sendrecv_particles) = (2, 2240)
+(rank, max_sendrecv_particles) = (0, 2240)
+Step: 10000
+Step: 20000
+Step: 30000
+Step: 40000
+Step: 50000
+Step: 60000
+Step: 70000
+Step: 80000
+Step: 90000
+Step: 100000
+Rank 0: Updating max_num_occupied_cells to 102
+Rank 1: Updating max_num_occupied_cells to 140
+Rank 2: Updating max_num_occupied_cells to 115
+Rank 3: Updating max_num_occupied_cells to 120
+┌ Warning: assign_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:48
+┌ Warning: prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:49
+┌ Warning: update_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:50
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:51
+┌ Warning: extract_migrants workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:52
+┌ Warning: (de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:53
+┌ Warning: HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/run_simulation.jl:54
+(rank, max_num_occupied_cells) = (0, 200)
+(rank, max_num_occupied_cells) = (3, 200)
+(rank, max_num_occupied_cells) = (1, 200)
+(rank, max_num_occupied_cells) = (2, 200)
+(rank, max_particles_per_rank) = (3, 10000)
+(rank, max_sendrecv_particles) = (3, 2240)
+(rank, max_particles_per_rank) = (1, 10000)
+(rank, max_particles_per_rank) = (2, 10000)
+(rank, max_sendrecv_particles) = (1, 2240)
+(rank, max_sendrecv_particles) = (2, 2240)
+(rank, max_particles_per_rank) = (0, 10000)
+(rank, max_sendrecv_particles) = (0, 2240)
+Step: 10000
+Step: 20000
+Step: 30000
+Step: 40000
+Step: 50000
+Step: 60000
+Step: 70000
+Step: 80000
+Step: 90000
+Step: 100000
+Rank 0: Updating max_num_occupied_cells to 138
+Rank 1: Updating max_num_occupied_cells to 124
+Rank 2: Updating max_num_occupied_cells to 125
+Rank 3: Updating max_num_occupied_cells to 139

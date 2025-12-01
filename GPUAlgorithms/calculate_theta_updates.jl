@@ -1,6 +1,3 @@
-@warn "HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64"
-
-
 # --------- Calculate θ_updates (Algorithm 3) ---------
 # NOTE: Tumbling comes later in the kernel for updating particles.
 

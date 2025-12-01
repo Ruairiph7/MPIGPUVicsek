@@ -6,7 +6,7 @@ mutable struct GhostBuffers
     rights::CuArray{Particle}
     counters::CuArray{Int32}
 end #struct
-GhostBuffers(max_particles::Int) = GhostBuffers(
+GhostBuffers(max_particles::Union{Int32,Int64}) = GhostBuffers(
     CuArray{Particle}(undef, max_particles),
     CuArray{Particle}(undef, max_particles),
     CuArray(zeros(Float32, 2))
@@ -19,7 +19,7 @@ mutable struct MigrantBuffers
     rights::CuArray{Particle}
     counters::CuArray{Int32}
 end #struct
-MigrantBuffers(max_particles::Int) = MigrantBuffers(
+MigrantBuffers(max_particles::Union{Int32,Int64}) = MigrantBuffers(
     CuArray{Particle}(undef, max_particles),
     CuArray{Particle}(undef, max_particles),
     CuArray{Particle}(undef, max_particles),
@@ -33,7 +33,7 @@ mutable struct SendRecvBuffers
     recv_left_buf::CuArray{Float32}
     recv_right_buf::CuArray{Float32}
 end #struct
-SendRecvBuffers(buf_lengths::Int) = SendRecvBuffers(
+SendRecvBuffers(buf_lengths::Union{Int32,Int64}) = SendRecvBuffers(
     CuArray{Float32}(undef, buf_lengths),
     CuArray{Float32}(undef, buf_lengths),
     CuArray{Float32}(undef, buf_lengths),

@@ -1,0 +1,80 @@
+Loading openmpi/4.1.6-cuda-12.4
+  Loading requirement: gcc/10.2.0
+┌ Warning: prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/prep_cell_lists.jl:1
+┌ Warning: prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/prep_cell_lists.jl:1
+┌ Warning: prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/prep_cell_lists.jl:1
+┌ Warning: prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/prep_cell_lists.jl:1
+┌ Warning: assign_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/assign_particles.jl:1
+┌ Warning: assign_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/assign_particles.jl:1
+┌ Warning: assign_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/assign_particles.jl:1
+┌ Warning: assign_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/assign_particles.jl:1
+┌ Warning: HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/calculate_theta_updates.jl:1
+┌ Warning: HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/calculate_theta_updates.jl:1
+┌ Warning: HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/calculate_theta_updates.jl:1
+┌ Warning: HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 64
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/calculate_theta_updates.jl:1
+┌ Warning: update_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/update_particles.jl:1
+┌ Warning: update_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/update_particles.jl:1
+┌ Warning: update_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/update_particles.jl:1
+┌ Warning: update_particles! workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/update_particles.jl:1
+┌ Warning: (de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/send_recv_functions.jl:1
+┌ Warning: (de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/send_recv_functions.jl:1
+┌ Warning: (de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/send_recv_functions.jl:1
+┌ Warning: (de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/send_recv_functions.jl:1
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/ghost_particles.jl:1
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/ghost_particles.jl:1
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/ghost_particles.jl:1
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/ghost_particles.jl:1
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/migrant_particles.jl:1
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/migrant_particles.jl:1
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/migrant_particles.jl:1
+┌ Warning: extract_ghosts workgroup_size, num_workgroups hard-coded at 256
+└ @ Main /mnt/lustre/e1000/home/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/MPI/migrant_particles.jl:1
+max_num_occupied_cells = 59
+max_num_occupied_cells = 59
+max_num_occupied_cells = 59
+max_num_occupied_cells = 59
+max_particles_per_rank = 1
+max_sendrecv_particles = 1088
+max_particles_per_rank = 1
+max_sendrecv_particles = 1088
+max_particles_per_rank = 1
+max_sendrecv_particles = 1088
+max_particles_per_rank = 1
+max_sendrecv_particles = 1088
+Step: 1
+Step: 2
+Step: 3
+Step: 4
+Step: 5
+Step: 6
+Step: 7
+Step: 8
+Step: 9
+Step: 10

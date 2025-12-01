@@ -1,12 +1,11 @@
-@warn "extract_ghosts workgroup_size, num_workgroups hard-coded at 256"
-
 # ------------------------------------------------------------
 # Ghost particle extraction on GPU
 # ------------------------------------------------------------
 
 @kernel function extract_ghosts_kernel!(lefts, rights, counters, @Const(particles), n, x_min, x_max, R)
     I = @index(Global)
-    stride = @ndrange()
+    # stride = @ndrange()
+    stride = 256*256
 
     for i = I:stride:n
         p = particles[i]

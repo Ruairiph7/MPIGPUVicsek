@@ -3,6 +3,7 @@
 # ---------------------------------------- #
 using JLD2
 using StaticArrays
+using DelimitedFiles
 # include("../DataStructures/particles.jl")
 
 struct Particle
@@ -87,4 +88,12 @@ function get_full_trajectories(;base_dir::String="./",outputs_dir_name::String="
     end #for tidx
 
     return time_steps, xs, ys, θs
+end #function
+
+function store_trajectories(;base_dir::String="./",outputs_dir_name::String="outputs/")
+    time_steps, xs, ys, θs = get_full_trajectories(base_dir=base_dir,outputs_dir_name=outputs_dir_name)
+    writedlm(base_dir * outputs_dir_name * "time_steps.txt",time_steps) 
+    writedlm(base_dir * outputs_dir_name * "xs.txt",xs) 
+    writedlm(base_dir * outputs_dir_name * "ys.txt",ys) 
+    writedlm(base_dir * outputs_dir_name * "thetas.txt",θs) 
 end #function

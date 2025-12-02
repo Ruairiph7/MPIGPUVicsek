@@ -1,0 +1,7 @@
+Simulations/*
+
+Tests/*/*
+Tests/*/*/
+!Tests/*/*.jl
+!Tests/*/*.sh
+!Tests/*/

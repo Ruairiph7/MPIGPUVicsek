@@ -47,10 +47,9 @@ end #function
 # Ghost particle exchange (GPU-only serialisation)
 # ------------------------------------------------------------
 
-function exchange_ghosts!(particles, local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs, mpi_bufs)
+function exchange_ghosts!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs)
     left_rank = (rank == 0) ? nprocs - 1 : rank - 1
     right_rank = (rank == nprocs - 1) ? 0 : rank + 1
-    num_local_particles = length(local_particles)
 
     # 1. Identify ghosts
     ghosts_left_view, ghosts_right_view = extract_ghosts!(ghost_bufs, local_particles, x_min, x_max, R)
@@ -98,10 +97,7 @@ function exchange_ghosts!(particles, local_particles, comm, rank, nprocs, x_min,
         sendtag=ghost_right_tag,
         recvtag=ghost_right_tag)
 
-    # 5. Deserialize and add into particles after local_particles, return new total
-    num_particles = unpack_f32_to_particles!(particles, num_local_particles, recv_left_buf, recv_right_buf)
-
-    return num_particles
+    return recv_left_buf, recv_right_buf
 end
 
 

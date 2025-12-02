@@ -1,10 +1,11 @@
 #!/bin/bash
 
-#SBATCH --job-name=mpi_validation_2gpus
+#SBATCH --job-name=mpi_test
 #SBATCH --partition=gpu
-#SBATCH --qos=short
-#SBATCH --nodes=1
-#SBATCH --gres=gpu:2
+#SBATCH --qos=gpu
+#SBATCH --nodes=2
+#SBATCH --gres=gpu:4
+#SBATCH --exclusive
 #SBATCH --time=00:10:00
 #SBATCH --account=tc060-ruairiph
 
@@ -20,7 +21,10 @@ export JULIA_DEPOT_PATH="$WORK/.julia"
 # Load correct mpi module
 module load openmpi/4.1.6-cuda-12.4
 
+# export OMPI_MCA_btl=vader,self
 export OMPI_MCA_btl=self
 
+# scontrol show job $SLURM_JOBID
+
 # Run program
-srun --ntasks=2 --tasks-per-node=2 --hint=nomultithread julia --project=$WORK/MPIGPUVicsek ./generateOutputs.jl
+srun --ntasks=8 --tasks-per-node=4 --hint=nomultithread julia --project=$WORK/MPIGPUVicsek ./test_script.jl

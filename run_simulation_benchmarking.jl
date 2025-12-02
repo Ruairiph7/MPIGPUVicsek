@@ -18,7 +18,7 @@ function run_simulation(N_total, max_steps;
     max_num_occupied_cells::Union{Int32,Nothing}=nothing,
     max_particles_per_rank::Union{Int32,Nothing}=nothing,
     max_sendrecv_particles::Union{Int32,Nothing}=nothing,
-    max_particles_in_cell::Int=512,
+    max_particles_in_cell::Int=96,
     ArrayType=CuArray,
     steps_to_save=100,
     save_outputs=true,
@@ -55,7 +55,7 @@ function run_simulation(N_total, max_steps;
         @warn "extract_ghosts workgroup_size, num_workgroups hard-coded at 256"
         @warn "extract_migrants workgroup_size, num_workgroups hard-coded at 256"
         @warn "(de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256"
-        @warn "HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 512"
+        @warn "HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 96"
     end #if (rank == 0)
 
     #TODO: CHECK THIS
@@ -144,19 +144,19 @@ function run_simulation(N_total, max_steps;
     R² = R^2
     Rn² = Rn^2
 
-    ##!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
-    ##NOTE: For benchmarking:
-    #@warn "DOING BENCHMARKING...."
-    #local_times = zeros(max_steps)
-    ##!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+    #NOTE: For benchmarking:
+    @warn "DOING BENCHMARKING...."
+    local_times = zeros(max_steps)
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 
     for time_step = 1:max_steps
 
-        ##!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
-        ##NOTE: For benchmarking:
-        #MPI.Barrier(comm)
-        #start_time = MPI.Wtime()
-        ##!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+        #NOTE: For benchmarking:
+        MPI.Barrier(comm)
+        start_time = MPI.Wtime()
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 
         if rank == 0 && time_step % steps_to_log == 0
             println("Step: " * string(time_step))
@@ -295,11 +295,11 @@ function run_simulation(N_total, max_steps;
 
         KernelAbstractions.synchronize(backend)
 
-        ##!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
-        ##NOTE: For benchmarking:
-        #MPI.Barrier(comm)
-        #local_times[time_step] = MPI.Wtime() - start_time
-        ##!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+        #NOTE: For benchmarking:
+        MPI.Barrier(comm)
+        local_times[time_step] = MPI.Wtime() - start_time
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 
     end #for time_step
 
@@ -319,13 +319,14 @@ function run_simulation(N_total, max_steps;
 
     end #if (rank == 0)
 
-    ##!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
-    ###NOTE: For benchmarking:
-    #writedlm("times_rank"*string(rank)*"_"*file_name_addon*".txt",local_times)
-    ##!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+    ##NOTE: For benchmarking:
+    writedlm("times_rank"*string(rank)*"_"*file_name_addon*".txt",local_times)
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 
     MPI.Barrier(comm)
     return nothing
 end #function
+
 
 

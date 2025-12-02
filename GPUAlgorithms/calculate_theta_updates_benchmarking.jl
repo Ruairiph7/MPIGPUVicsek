@@ -2,7 +2,7 @@
 # NOTE: Tumbling comes later in the kernel for updating particles.
 
 function calculate_θ_updates!(θ_updates, cell_neighbours_list, cell_address_list, cell_num_particles_list, occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, occupied_cells_ID_list, γ, dt, R², γn, Rn², Lx, Ly, cell_width, num_occupied_cells, num_cells)
-    workgroup_size = 512
+    workgroup_size = 96
     total_num_threads = workgroup_size * num_cells
     kernel! = calculate_θ_updates_kernel!(CUDABackend(), workgroup_size, total_num_threads)
     kernel!(θ_updates, cell_neighbours_list, cell_address_list, cell_num_particles_list, occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, occupied_cells_ID_list, num_occupied_cells, γ, dt, R², γn, Rn², Lx, Ly, cell_width)
@@ -21,10 +21,10 @@ end #function
         neighbour_cell_address = @localmem Int32 1
         neighbour_cell_num_particles = @localmem Int32 1
 
-        self_rs = @localmem SVector{2,Float32} 512
-        self_θs = @localmem Float32 512
-        neighbour_rs = @localmem SVector{2,Float32} 512
-        neighbour_θs = @localmem Float32 512
+        self_rs = @localmem SVector{2,Float32} 96
+        self_θs = @localmem Float32 96
+        neighbour_rs = @localmem SVector{2,Float32} 96
+        neighbour_θs = @localmem Float32 96
 
         cell_index = @uniform gi
         cell_ID = occupied_cells_ID_list[cell_index]
@@ -112,4 +112,5 @@ end #function
     end #if gi
 
 end #function
+
 

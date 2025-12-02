@@ -61,9 +61,8 @@ end
 function unpack_f32_to_particles!(particles, base_num_particles, left_buf, right_buf)
     n_left = length(left_buf) ÷ 4
     n_right = length(right_buf) ÷ 4
+    n_left == n_right == 0 && return nothing
     num_particles = base_num_particles + n_left + n_right
-    n_left == n_right == 0 && return num_particles
-
 
     workgroup_size = 256
     num_workgroups = 256
@@ -79,5 +78,5 @@ function unpack_f32_to_particles!(particles, base_num_particles, left_buf, right
         KernelAbstractions.synchronize(CUDABackend())
     end # if (n_right != 0)
 
-    return num_particles
+    return nothing
 end

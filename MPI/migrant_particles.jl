@@ -54,7 +54,7 @@ end
 # ------------------------------------------------------------
 # Migration exchange between ranks
 # ------------------------------------------------------------
-function exchange_migrants!(particles, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs, mpi_bufs)
+function exchange_migrants!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs)
     left_rank = (rank == 0) ? nprocs - 1 : rank - 1
     right_rank = (rank == nprocs - 1) ? 0 : rank + 1
 
@@ -104,13 +104,5 @@ function exchange_migrants!(particles, local_particles, comm, rank, nprocs, x_mi
         sendtag=migrant_right_tag,
         recvtag=migrant_right_tag)
 
-
-    # 6. Load stayers into the beginning of particles
-    num_stayers = length(stayers_view)
-    particles[1:num_stayers] .= stayers_view
-
-    # 7. Deserialize and add migrants into particles after stayers, return new num_local_particles
-    num_local_particles = unpack_f32_to_particles!(particles, num_stayers, recv_left_buf, recv_right_buf)
-
-    return num_local_particles
+    return stayers_view, recv_left_buf, recv_right_buf
 end

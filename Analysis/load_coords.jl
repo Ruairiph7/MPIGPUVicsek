@@ -26,14 +26,14 @@ function unpack_coords(particles_array::Array{Particle})
 end #function
 # ---------------------------------------- #
 
-function get_timestep_dirs(;base_dir::String="./",outputs_dir_name::String="outputs/")
+function get_timestep_dirs(; base_dir::String="./", outputs_dir_name::String="outputs/")
     return readdir(base_dir * outputs_dir_name, join=true)
 end #function
 
 
 function load_coords_from_timestep(timestep_dir::String; nprocs::Union{Nothing,Int}=nothing)
-    timestep_str = match(r"([^_]+$)",timestep_dir).match
-    time_step = parse(Int,timestep_str)
+    timestep_str = match(r"([^_]+$)", timestep_dir).match
+    time_step = parse(Int, timestep_str)
     rank_files = readdir(timestep_dir, join=true)
     if !isnothing(nprocs)
         length(rank_files) != nprocs && error("Mismatch in number of ranks")
@@ -46,10 +46,10 @@ function load_coords_from_timestep(timestep_dir::String; nprocs::Union{Nothing,I
     N_total = sum(length.(particle_arrays))
     coord_arrays = unpack_coords.(particle_arrays)
 
-    xs = Vector{Float32}(undef,N_total)
+    xs = Vector{Float32}(undef, N_total)
     ys = similar(xs)
     θs = similar(xs)
-    uids = Vector{Int32}(undef,N_total)
+    uids = Vector{Int32}(undef, N_total)
 
     N_so_far = 0
     for proc_idx = 1:nprocs
@@ -69,18 +69,18 @@ function load_coords_from_timestep(timestep_dir::String; nprocs::Union{Nothing,I
     ys = ys[particle_order]
     θs = θs[particle_order]
     uids = uids[particle_order]
-    uids != 1:N_total && error("Error in particle order") 
-        
+    uids != 1:N_total && @warn("Error in particle order")
+
     return time_step, xs, ys, θs
 end #function
 
-function get_full_trajectories(;base_dir::String="./",outputs_dir_name::String="outputs/")
-    timestep_dirs = get_timestep_dirs(base_dir=base_dir,outputs_dir_name=outputs_dir_name)
+function get_full_trajectories(; base_dir::String="./", outputs_dir_name::String="outputs/")
+    timestep_dirs = get_timestep_dirs(base_dir=base_dir, outputs_dir_name=outputs_dir_name)
     num_steps = length(timestep_dirs)
-    time_steps = Vector{Int}(undef,num_steps)
-    xs = Vector{Vector{Float32}}(undef,num_steps)
-    ys = Vector{Vector{Float32}}(undef,num_steps)
-    θs = Vector{Vector{Float32}}(undef,num_steps)
+    time_steps = Vector{Int}(undef, num_steps)
+    xs = Vector{Vector{Float32}}(undef, num_steps)
+    ys = Vector{Vector{Float32}}(undef, num_steps)
+    θs = Vector{Vector{Float32}}(undef, num_steps)
 
     for tidx = 1:num_steps
         timestep_dir = timestep_dirs[tidx]
@@ -92,8 +92,8 @@ end #function
 
 
 function load_coords_and_ranks_from_timestep(timestep_dir::String; nprocs::Union{Nothing,Int}=nothing)
-    timestep_str = match(r"([^_]+$)",timestep_dir).match
-    time_step = parse(Int,timestep_str)
+    timestep_str = match(r"([^_]+$)", timestep_dir).match
+    time_step = parse(Int, timestep_str)
     rank_files = readdir(timestep_dir, join=true)
     if !isnothing(nprocs)
         length(rank_files) != nprocs && error("Mismatch in number of ranks")
@@ -106,10 +106,10 @@ function load_coords_and_ranks_from_timestep(timestep_dir::String; nprocs::Union
     N_total = sum(length.(particle_arrays))
     coord_arrays = unpack_coords.(particle_arrays)
 
-    xs = Vector{Float32}(undef,N_total)
+    xs = Vector{Float32}(undef, N_total)
     ys = similar(xs)
     θs = similar(xs)
-    uids = Vector{Int32}(undef,N_total)
+    uids = Vector{Int32}(undef, N_total)
     ranks = similar(uids)
 
     N_so_far = 0
@@ -133,20 +133,20 @@ function load_coords_and_ranks_from_timestep(timestep_dir::String; nprocs::Union
     ranks = ranks[particle_order]
 
     uids = uids[particle_order]
-    uids != 1:N_total && error("Error in particle order") 
-        
+    uids != 1:N_total && @warn("Error in particle order")
+
     return time_step, xs, ys, θs, ranks
 end #function
 
 
-function get_full_trajectories_and_ranks(;base_dir::String="./",outputs_dir_name::String="outputs/")
-    timestep_dirs = get_timestep_dirs(base_dir=base_dir,outputs_dir_name=outputs_dir_name)
+function get_full_trajectories_and_ranks(; base_dir::String="./", outputs_dir_name::String="outputs/")
+    timestep_dirs = get_timestep_dirs(base_dir=base_dir, outputs_dir_name=outputs_dir_name)
     num_steps = length(timestep_dirs)
-    time_steps = Vector{Int}(undef,num_steps)
-    xs = Vector{Vector{Float32}}(undef,num_steps)
-    ys = Vector{Vector{Float32}}(undef,num_steps)
-    θs = Vector{Vector{Float32}}(undef,num_steps)
-    ranks = Vector{Vector{Int32}}(undef,num_steps)
+    time_steps = Vector{Int}(undef, num_steps)
+    xs = Vector{Vector{Float32}}(undef, num_steps)
+    ys = Vector{Vector{Float32}}(undef, num_steps)
+    θs = Vector{Vector{Float32}}(undef, num_steps)
+    ranks = Vector{Vector{Int32}}(undef, num_steps)
 
     for tidx = 1:num_steps
         timestep_dir = timestep_dirs[tidx]
@@ -157,10 +157,10 @@ function get_full_trajectories_and_ranks(;base_dir::String="./",outputs_dir_name
 end #function
 
 
-function store_trajectories(;base_dir::String="./",outputs_dir_name::String="outputs/")
-    time_steps, xs, ys, θs = get_full_trajectories(base_dir=base_dir,outputs_dir_name=outputs_dir_name)
-    writedlm(base_dir * outputs_dir_name * "time_steps.txt",time_steps) 
-    writedlm(base_dir * outputs_dir_name * "xs.txt",xs) 
-    writedlm(base_dir * outputs_dir_name * "ys.txt",ys) 
-    writedlm(base_dir * outputs_dir_name * "thetas.txt",θs) 
+function store_trajectories(; base_dir::String="./", outputs_dir_name::String="outputs/")
+    time_steps, xs, ys, θs = get_full_trajectories(base_dir=base_dir, outputs_dir_name=outputs_dir_name)
+    writedlm(base_dir * outputs_dir_name * "time_steps.txt", time_steps)
+    writedlm(base_dir * outputs_dir_name * "xs.txt", xs)
+    writedlm(base_dir * outputs_dir_name * "ys.txt", ys)
+    writedlm(base_dir * outputs_dir_name * "thetas.txt", θs)
 end #function

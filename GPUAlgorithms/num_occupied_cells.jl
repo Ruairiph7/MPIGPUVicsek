@@ -15,7 +15,7 @@ end #function
 function lower_max_num_occupied_cells_check(num_occupied_cells, occupied_cells_particle_IDs, cell_list_params)
     CUDA.@allowscalar num_occupied = num_occupied_cells[1]
     old_max, max_particles_in_cell = size(occupied_cells_particle_IDs)
-    new_max = minimum([ceil(Int32, 1.5 * num_occupied), cell_list_params.num_boxes])
+    new_max = minimum([ceil(Int32, 1.7 * num_occupied), cell_list_params.num_boxes])
     if new_max < old_max
         return new_max, Int32(max_particles_in_cell)
     else

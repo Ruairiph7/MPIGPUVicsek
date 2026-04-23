@@ -48,6 +48,10 @@ function run_simulation(N_total, max_steps;
     rank = MPI.Comm_rank(comm)
     nprocs = MPI.Comm_size(comm)
 
+    # Flag if we only have a single MPI rank -- avoid communication 
+    SINGLE_RANK = nprocs == 1
+    SINGLE_RANK && println("NOTE: Running on a single MPI rank.")
+
     if rank == 0
         @warn "assign_particles! workgroup_size, num_workgroups hard-coded at 256"
         @warn "prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256"
@@ -55,7 +59,7 @@ function run_simulation(N_total, max_steps;
         @warn "extract_ghosts workgroup_size, num_workgroups hard-coded at 256"
         @warn "extract_migrants workgroup_size, num_workgroups hard-coded at 256"
         @warn "(de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256"
-        @warn "HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 512"
+        @warn "HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 1024"
     end #if (rank == 0)
 
     #TODO: CHECK THIS
@@ -166,7 +170,7 @@ function run_simulation(N_total, max_steps;
         #---------------------------------------------#
 
         #Exchange ghosts serialized into buffers
-        recv_left_buf, recv_right_buf = exchange_ghosts!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs)
+        recv_left_buf, recv_right_buf = exchange_ghosts!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs, SINGLE_RANK=SINGLE_RANK)
 
         #Check if we need to raise max_particles_per_rank (locally on just this rank)
         n_left = length(recv_left_buf) ÷ 4
@@ -251,7 +255,7 @@ function run_simulation(N_total, max_steps;
         #Migrate particles that have moved domains
         #---------------------------------------------#
         #Find stayers; exchange migrants serialized into buffers
-        stayers, recv_left_buf, recv_right_buf = exchange_migrants!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs)
+        stayers, recv_left_buf, recv_right_buf = exchange_migrants!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs, SINGLE_RANK=SINGLE_RANK)
 
         #Check if we need to raise max_particles_per_rank (locally on just this rank)
         n_stay = length(stayers)

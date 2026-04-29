@@ -1,3 +1,0 @@
-1) Fix finite precision errors - don't convert uid to a Float32, change so I reinterpret the particle datafields all as UInt32s rather than Float32s -- i.e. 4 byte words, then send over MPI and reinterpret back into their correct data types again.
-2) Add error message when initialising cell lists for if number of cells > 2^24 as then Float32s cannot correctly calculate cell ID.
-3) Alter logic around raising/lowering max_particles_per_rank and max_num_occupied_cells -- they're doing this too often; I should set my buffer much higher

@@ -47,7 +47,15 @@ end #function
 # Ghost particle exchange (GPU-only serialisation)
 # ------------------------------------------------------------
 
-function exchange_ghosts!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs)
+function exchange_ghosts!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs; SINGLE_RANK=false)
+
+    # --- If only a single GPU, no ghost exchange needed ---
+    if SINGLE_RANK
+        return CuArray{Particle}(undef,0), CuArray{Particle}(undef,0)
+    end #if SINGLE_RANK
+
+    # --- Otherwise: ---
+
     left_rank = (rank == 0) ? nprocs - 1 : rank - 1
     right_rank = (rank == nprocs - 1) ? 0 : rank + 1
 

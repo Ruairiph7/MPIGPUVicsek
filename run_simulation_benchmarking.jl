@@ -18,7 +18,7 @@ function run_simulation(N_total, max_steps;
     max_num_occupied_cells::Union{Int32,Nothing}=nothing,
     max_particles_per_rank::Union{Int32,Nothing}=nothing,
     max_sendrecv_particles::Union{Int32,Nothing}=nothing,
-    max_particles_in_cell::Int=96,
+    max_particles_in_cell::Int=512,
     ArrayType=CuArray,
     steps_to_save=100,
     save_outputs=true,
@@ -31,9 +31,9 @@ function run_simulation(N_total, max_steps;
     write_final_coords=true,
     saving_coords_on_the_go=false,
     steps_to_save_on_the_go=10,
-    steps_to_log = maximum((max_steps ÷ 10, 1)),
-    steps_to_shrink_buffers = maximum((max_steps ÷ 10, 100000))
-    )
+    steps_to_log=maximum((max_steps ÷ 10, 1)),
+    steps_to_shrink_buffers=maximum((max_steps ÷ 10, 100000))
+)
 
 
     #Store correct backend
@@ -48,6 +48,10 @@ function run_simulation(N_total, max_steps;
     rank = MPI.Comm_rank(comm)
     nprocs = MPI.Comm_size(comm)
 
+    # Flag if we only have a single MPI rank -- avoid communication 
+    SINGLE_RANK = nprocs == 1
+    SINGLE_RANK && println("NOTE: Running on a single MPI rank.")
+
     if rank == 0
         @warn "assign_particles! workgroup_size, num_workgroups hard-coded at 256"
         @warn "prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256"
@@ -55,7 +59,7 @@ function run_simulation(N_total, max_steps;
         @warn "extract_ghosts workgroup_size, num_workgroups hard-coded at 256"
         @warn "extract_migrants workgroup_size, num_workgroups hard-coded at 256"
         @warn "(de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256"
-        @warn "HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 96"
+        @warn "HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 512"
     end #if (rank == 0)
 
     #TODO: CHECK THIS
@@ -95,7 +99,7 @@ function run_simulation(N_total, max_steps;
 
     #Set max_particles_per_rank
     if isnothing(max_particles_per_rank)
-        max_particles_per_rank = maximum((ceil(Int32, 2 * N_total / nprocs),Int32(10000)))
+        max_particles_per_rank = maximum((ceil(Int32, 2 * N_total / nprocs), Int32(10000)))
         @show rank, max_particles_per_rank
     end #if isnothing()
 
@@ -166,28 +170,28 @@ function run_simulation(N_total, max_steps;
         #---------------------------------------------#
 
         #Exchange ghosts serialized into buffers
-        recv_left_buf, recv_right_buf = exchange_ghosts!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs)
+        recv_left_buf, recv_right_buf = exchange_ghosts!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs, SINGLE_RANK=SINGLE_RANK)
 
         #Check if we need to raise max_particles_per_rank (locally on just this rank)
         n_left = length(recv_left_buf) ÷ 4
         n_right = length(recv_right_buf) ÷ 4
         num_particles = num_local_particles + n_left + n_right
         if num_particles > max_particles_per_rank
-            max_particles_per_rank = ceil(Int32,num_particles * 1.1) #Raise maximum
-            println("Rank "*string(rank)*": Rasing max_particles_per_rank to "*string(max_particles_per_rank))
+            max_particles_per_rank = ceil(Int32, num_particles * 1.1) #Raise maximum
+            println("Rank " * string(rank) * ": Rasing max_particles_per_rank to " * string(max_particles_per_rank))
             local_particles_cpu = Array(local_particles) #Store local particles
-            particles = CuArray{Particle}(undef,max_particles_per_rank) #Reallocate particles
+            particles = CuArray{Particle}(undef, max_particles_per_rank) #Reallocate particles
             particles[1:num_local_particles] .= CuArray(local_particles_cpu) #Retrieve local particles
-            local_particles = view(particles,1:num_local_particles) #Reset local_particles
+            local_particles = view(particles, 1:num_local_particles) #Reset local_particles
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
         #Else: try to lower maximum every steps_to_shrink_buffers steps
-        elseif time_step % steps_to_shrink_buffers == 0 && max_particles_per_rank > 1.5*num_particles
-            max_particles_per_rank = maximum((ceil(Int32,num_particles * 1.5),Int32(10000))) #Lower maximum
-            println("Rank "*string(rank)*": Lowering max_particles_per_rank to "*string(max_particles_per_rank))
+        elseif time_step % steps_to_shrink_buffers == 0 && max_particles_per_rank > 1.7 * num_particles
+            max_particles_per_rank = maximum((ceil(Int32, num_particles * 1.7), Int32(10000))) #Lower maximum
+            println("Rank " * string(rank) * ": Lowering max_particles_per_rank to " * string(max_particles_per_rank))
             local_particles_cpu = Array(local_particles) #Store local particles
-            particles = CuArray{Particle}(undef,max_particles_per_rank) #Reallocate particles
+            particles = CuArray{Particle}(undef, max_particles_per_rank) #Reallocate particles
             particles[1:num_local_particles] .= CuArray(local_particles_cpu) #Retrieve local particles
-            local_particles = view(particles,1:num_local_particles) #Reset local_particles
+            local_particles = view(particles, 1:num_local_particles) #Reset local_particles
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
         end #if
 
@@ -208,7 +212,7 @@ function run_simulation(N_total, max_steps;
                 lower_max_num_occupied_cells = lower_max_num_occupied_cells_check(num_occupied_cells, occupied_cells_particle_IDs, cell_list_params)
                 if lower_max_num_occupied_cells != false
                     new_max, max_particles_in_cell = lower_max_num_occupied_cells
-                    println("Rank "*string(rank)*": Lowering max_num_occupied_cells to "*string(new_max))
+                    println("Rank " * string(rank) * ": Lowering max_num_occupied_cells to " * string(new_max))
                     (
                         occupied_cells_particle_IDs,
                         occupied_cells_particle_rs,
@@ -223,7 +227,7 @@ function run_simulation(N_total, max_steps;
                 occupied_cells_particle_IDs, cell_list_params)
             if update_max_num_occupied_cells != false
                 new_max, max_particles_in_cell = update_max_num_occupied_cells
-                println("Rank "*string(rank)*": Raising max_num_occupied_cells to "*string(new_max))
+                println("Rank " * string(rank) * ": Raising max_num_occupied_cells to " * string(new_max))
                 (
                     occupied_cells_particle_IDs,
                     occupied_cells_particle_rs,
@@ -251,7 +255,7 @@ function run_simulation(N_total, max_steps;
         #Migrate particles that have moved domains
         #---------------------------------------------#
         #Find stayers; exchange migrants serialized into buffers
-        stayers, recv_left_buf, recv_right_buf = exchange_migrants!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs)
+        stayers, recv_left_buf, recv_right_buf = exchange_migrants!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs, SINGLE_RANK=SINGLE_RANK)
 
         #Check if we need to raise max_particles_per_rank (locally on just this rank)
         n_stay = length(stayers)
@@ -260,8 +264,8 @@ function run_simulation(N_total, max_steps;
         num_local_particles = n_stay + n_left + n_right
         if num_local_particles > max_particles_per_rank
             max_particles_per_rank = num_particles * 1.1 #Raise maximum
-            println("Rank "*string(rank)*": Rasing max_particles_per_rank to "*string(max_particles_per_rank))
-            particles = CuArray{Particle}(undef,max_particles_per_rank) #Reallocate particles
+            println("Rank " * string(rank) * ": Rasing max_particles_per_rank to " * string(max_particles_per_rank))
+            particles = CuArray{Particle}(undef, max_particles_per_rank) #Reallocate particles
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
         end #if
 

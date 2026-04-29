@@ -1,4 +1,4 @@
-include("../../main.jl")
+include("../../main_no_MPI.jl")
 
 MPI.Init()
 

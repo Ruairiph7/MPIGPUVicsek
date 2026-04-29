@@ -1,4 +1,4 @@
-include("/work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/main.jl")
+include("../../main.jl")
 
 MPI.Init()
 

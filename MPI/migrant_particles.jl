@@ -54,7 +54,15 @@ end
 # ------------------------------------------------------------
 # Migration exchange between ranks
 # ------------------------------------------------------------
-function exchange_migrants!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs)
+function exchange_migrants!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs; SINGLE_RANK=false)
+
+    # --- If only a single GPU, all particles are stayers ---
+    if SINGLE_RANK 
+        return local_particles, CuArray{Particle}(undef,0), CuArray{Particle}(undef,0)
+    end #if SINGLE_RANK
+
+    # --- Otherwise: ---
+
     left_rank = (rank == 0) ? nprocs - 1 : rank - 1
     right_rank = (rank == nprocs - 1) ? 0 : rank + 1
 

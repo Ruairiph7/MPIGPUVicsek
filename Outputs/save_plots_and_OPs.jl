@@ -1,11 +1,11 @@
-function save_plots_and_OPs(time_step, steps_to_save, particles, save_snapshots, save_OPs, file_name_addon, markersize, OP_m_file, OP_S_file, rank, comm)
+function save_plots_and_OPs(time_step, steps_to_save, particles, save_snapshots, save_OPs, file_name_addon, markersize, Lx, Ly, dt, OP_m_file, OP_S_file, rank, comm)
     if time_step % steps_to_save == 0
 
-        local_rs, local_θs = unpack_coords(Array(particles))
+        local_rs, local_θs, local_uids = unpack_coords(Array(particles))
 
         if save_snapshots
-            global_rs = MPI.gather(local_rs, 0, comm)
-            global_θs = MPI.gather(local_θs, 0, comm)
+            global_rs = MPI.gather(local_rs, comm)
+            global_θs = MPI.gather(local_θs, comm)
 
             if rank == 0
                 output_dir = "plots/"

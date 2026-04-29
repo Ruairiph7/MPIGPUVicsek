@@ -1,0 +1,10 @@
+Loading openmpi/4.1.6-cuda-12.4
+  Loading requirement: gcc/10.2.0
+┌ Warning: HAVE workgroup_size HARD CODED AT 640
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/calculate_theta_updates.jl:1
+┌ Warning: HAVE workgroup_size HARD CODED AT 640
+└ @ Main /work/tc060/tc060/ruairiph_tc060/MPIGPUVicsek/GPUAlgorithms/calculate_theta_updates.jl:1
+Step: 1
+Step: 2
+Step: 3
+Step: 4

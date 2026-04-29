@@ -1,20 +1,12 @@
-#NOTE:
-#TODO:
-#WARN: NEED TO ENSURE THAT WE ONLY CALCULATE Θ UPDATES FOR cells within our domain, not the ghost particle cells. --> possibly implement by restricting occupied_cells_lists and num_occupied_cells to number of occupied cells within our domain. Then also change argument num_cells to number of cells within the domain (i.e. cell_list_params.num_boxes - 2*num_boxes_y?)
-#^^ ACTUALLY I'VE changed it to just calculate the updates for all particles, then later neglect the ones not in our local domain
-
 # --------- Calculate θ_updates (Algorithm 3) ---------
 # NOTE: Tumbling comes later in the kernel for updating particles.
 
-function calculate_θ_updates!(θ_updates, cell_neighbours_list, cell_address_list, cell_num_particles_list, occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, occupied_cells_ID_list, γ, dt, R², γn, Rn², Lx, Ly, cell_width, num_occupied_cells, num_cells, backend)
-    #NOTE:
-    #TODO:
-    #WARN:CONFIRM KERNEL CONFIGURATION HERE IS CORRECT, then apply to others too
-    workgroup_size = 640
+function calculate_θ_updates!(θ_updates, cell_neighbours_list, cell_address_list, cell_num_particles_list, occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, occupied_cells_ID_list, γ, dt, R², γn, Rn², Lx, Ly, cell_width, num_occupied_cells, num_cells)
+    workgroup_size = 512
     total_num_threads = workgroup_size * num_cells
-    kernel! = calculate_θ_updates_kernel!(backend, workgroup_size, total_num_threads)
-    kernel!(θ_updates, cell_neighbours_list, cell_address_list, cell_num_particles_list, occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, occupied_cells_ID_list, num_occupied_cells, γ, dt, R², γn, Rn², Lx, Ly, cell_width; ndrange=total_num_threads)
-    KernelAbstractions.synchronize(backend)
+    kernel! = calculate_θ_updates_kernel!(CUDABackend(), workgroup_size, total_num_threads)
+    kernel!(θ_updates, cell_neighbours_list, cell_address_list, cell_num_particles_list, occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, occupied_cells_ID_list, num_occupied_cells, γ, dt, R², γn, Rn², Lx, Ly, cell_width)
+    KernelAbstractions.synchronize(CUDABackend())
 end #function
 
 @kernel function calculate_θ_updates_kernel!(θ_updates, @Const(cell_neighbours_list), @Const(cell_address_list), @Const(cell_num_particles_list), @Const(occupied_cells_particle_IDs), @Const(occupied_cells_particle_rs), @Const(occupied_cells_particle_θs), @Const(occupied_cells_ID_list), @Const(num_occupied_cells), γ, dt, R², γn, Rn², Lx, Ly, cell_width)
@@ -29,10 +21,10 @@ end #function
         neighbour_cell_address = @localmem Int32 1
         neighbour_cell_num_particles = @localmem Int32 1
 
-        self_rs = @localmem SVector{2,Float32} 640
-        self_θs = @localmem Float32 640
-        neighbour_rs = @localmem SVector{2,Float32} 640
-        neighbour_θs = @localmem Float32 640
+        self_rs = @localmem SVector{2,Float32} 512
+        self_θs = @localmem Float32 512
+        neighbour_rs = @localmem SVector{2,Float32} 512
+        neighbour_θs = @localmem Float32 512
 
         cell_index = @uniform gi
         cell_ID = occupied_cells_ID_list[cell_index]

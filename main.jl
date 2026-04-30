@@ -1,7 +1,7 @@
-include("./DataStructures/datastructures.jl")
-include("./GPUAlgorithms/gpualgorithms.jl")
-include("./MPI/mpi.jl")
-include("./Misc/misc.jl")
-include("./Outputs/outputs.jl")
+include("./Core/DataStructures/datastructures.jl")
+include("./Core/GPUAlgorithms/gpualgorithms.jl")
+include("./Core/MPI/mpi.jl")
+include("./Core/Misc/misc.jl")
+include("./Core/Outputs/outputs.jl")
 
-include("./run_simulation.jl")
+include("./Core/run_simulation.jl")

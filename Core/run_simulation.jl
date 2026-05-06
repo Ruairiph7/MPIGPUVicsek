@@ -54,8 +54,8 @@ function run_simulation(N_total, max_steps;
         error("Only accepted algorithms: ':dynamic_cell_list' or 'simple_cell_list'")
     end #if
     if algorithm == :dynamic_cell_list
-        include("DataStructures/DynamicCellLists/dynamiccelllists.jl")
-        include("GPUAlgorithms/DynamicCellLists/dynamiccelllists.jl")
+        include(@__DIR__() * "/DataStructures/DynamicCellLists/dynamiccelllists.jl")
+        include(@__DIR__() * "GPUAlgorithms/DynamicCellLists/dynamiccelllists.jl")
     end #if algorithm
 
     # ----- Prepare for MPI -----

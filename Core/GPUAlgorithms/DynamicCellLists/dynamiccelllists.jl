@@ -1,7 +1,3 @@
-using KernelAbstractions
-using Atomix
-using LinearAlgebra
-
 include("./prep_cell_lists.jl")
 include("./num_occupied_cells.jl")
 include("./assign_particles.jl")

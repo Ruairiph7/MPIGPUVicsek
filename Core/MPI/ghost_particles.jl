@@ -5,7 +5,7 @@
 @kernel function extract_ghosts_kernel!(lefts, rights, counters, @Const(particles), n, x_min, x_max, R)
     I = @index(Global)
     # stride = @ndrange()
-    stride = 256*256
+    stride = 256 * 256
 
     for i = I:stride:n
         p = particles[i]
@@ -51,7 +51,7 @@ function exchange_ghosts!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, 
 
     # --- If only a single GPU, no ghost exchange needed ---
     if SINGLE_RANK
-        return CuArray{Particle}(undef,0), CuArray{Particle}(undef,0)
+        return CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0)
     end #if SINGLE_RANK
 
     # --- Otherwise: ---
@@ -64,6 +64,9 @@ function exchange_ghosts!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, 
 
     # 2. Serialize on device
     send_left_count, send_right_count = pack_particles_to_f32!(mpi_bufs, ghosts_left_view, ghosts_right_view)
+    @assert send_left_count < mpi_bufs.buf_lengths "Too many ghosts"
+    @assert send_right_count < mpi_bufs.buf_lengths "Too many ghosts"
+
     send_left_buf = view(mpi_bufs.send_left_buf, 1:getindex(send_left_count))
     send_right_buf = view(mpi_bufs.send_right_buf, 1:getindex(send_right_count))
 

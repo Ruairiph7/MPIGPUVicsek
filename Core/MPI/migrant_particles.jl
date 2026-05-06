@@ -5,7 +5,7 @@
 @kernel function sort_migrants_kernel!(stayers, lefts, rights, counters, @Const(particles), x_min, x_max, cell_width, n)
     I = @index(Global)
     # stride = @ndrange()
-    stride = 256*256
+    stride = 256 * 256
 
     for i = I:stride:n
         p = particles[i]
@@ -57,8 +57,8 @@ end
 function exchange_migrants!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs; SINGLE_RANK=false)
 
     # --- If only a single GPU, all particles are stayers ---
-    if SINGLE_RANK 
-        return local_particles, CuArray{Particle}(undef,0), CuArray{Particle}(undef,0)
+    if SINGLE_RANK
+        return local_particles, CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0)
     end #if SINGLE_RANK
 
     # --- Otherwise: ---
@@ -71,6 +71,9 @@ function exchange_migrants!(mpi_bufs, local_particles, comm, rank, nprocs, x_min
 
     # 2. Serialize migrants
     send_left_count, send_right_count = pack_particles_to_f32!(mpi_bufs, migrants_left_view, migrants_right_view)
+    @assert send_left_count < mpi_bufs.buf_lengths "Too many migrants"
+    @assert send_right_count < mpi_bufs.buf_lengths "Too many migrants"
+
     send_left_buf = view(mpi_bufs.send_left_buf, 1:getindex(send_left_count))
     send_right_buf = view(mpi_bufs.send_right_buf, 1:getindex(send_right_count))
 

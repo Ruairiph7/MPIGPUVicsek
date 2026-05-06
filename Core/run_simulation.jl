@@ -34,7 +34,7 @@ function run_simulation(N_total, max_steps;
     steps_to_log=maximum((max_steps ÷ 10, 1)),
     algorithm::Symbol=:dynamic_cell_list
 )
-    
+
     #Store numerical parameters
     num_params = (; dt, R, Rn, γ, γn, λ, Lx, Ly, v)
 
@@ -101,7 +101,7 @@ function run_simulation(N_total, max_steps;
 
     #Initialise dynamic cell lists data structures
     num_occupied_cells = ArrayType([Int32(0)])
-    cells_data= initialise_data_structures(cell_list_params, max_num_occupied_cells, max_particles_in_cell, ArrayType)
+    cells_data = initialise_data_structures(cell_list_params, max_num_occupied_cells, max_particles_in_cell, ArrayType)
 
     #Set max_particles_per_rank
     if isnothing(max_particles_per_rank)

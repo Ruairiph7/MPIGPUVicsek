@@ -114,7 +114,7 @@ function initialise_data_structures(params::CellListParams, max_num_occupied_cel
     occupied_rs = build_occupied_cells_particle_rs(max_num_occupied_cells, max_particles_in_cell, ArrayType)
     occupied_θs = build_occupied_cells_particle_θs(max_num_occupied_cells, max_particles_in_cell, ArrayType)
     occupied_ID_list = build_occupied_cells_ID_list(params::CellListParams, ArrayType)
-    return neighbours, addresses, num_particles, occupied_IDs, occupied_rs, occupied_θs, occupied_ID_list
+    return (; neighbours, addresses, num_particles, occupied_IDs, occupied_rs, occupied_θs, occupied_ID_list)
 end #function
 
 function build_cell_neighbours_list(params::CellListParams, ArrayType)

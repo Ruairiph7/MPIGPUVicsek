@@ -1,15 +1,50 @@
 # --------- Calculate θ_updates (Algorithm 3) ---------
 # NOTE: Tumbling comes later in the kernel for updating particles.
 
-function calculate_θ_updates!(θ_updates, cell_neighbours_list, cell_address_list, cell_num_particles_list, occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, occupied_cells_ID_list, γ, dt, R², γn, Rn², Lx, Ly, cell_width, num_occupied_cells, num_cells)
+function calculate_θ_updates!(θ_updates, cells_data, num_params, cell_width, num_occupied_cells, num_cells)
     workgroup_size = 1024
     total_num_threads = workgroup_size * num_cells
     kernel! = calculate_θ_updates_kernel!(CUDABackend(), workgroup_size, total_num_threads)
-    kernel!(θ_updates, cell_neighbours_list, cell_address_list, cell_num_particles_list, occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, occupied_cells_ID_list, num_occupied_cells, γ, dt, R², γn, Rn², Lx, Ly, cell_width)
+    kernel!(θ_updates, 
+            cells_data.neighbours, 
+            cells_data.addresses,
+            cells_data.num_particles, 
+            cells_data.occupied_IDs, 
+            cells_data.occupied_rs,
+            cells_data.occupied_θs,
+            cells_data.occupied_ID_list,
+            num_occupied_cells,
+            num_params.γ,
+            num_params.dt, 
+            num_params.R^2,
+            num_params.γn,
+            num_params.Rn^2,
+            num_params.Lx,
+            num_params.Ly,
+            cell_width)
     KernelAbstractions.synchronize(CUDABackend())
 end #function
 
-@kernel function calculate_θ_updates_kernel!(θ_updates, @Const(cell_neighbours_list), @Const(cell_address_list), @Const(cell_num_particles_list), @Const(occupied_cells_particle_IDs), @Const(occupied_cells_particle_rs), @Const(occupied_cells_particle_θs), @Const(occupied_cells_ID_list), @Const(num_occupied_cells), γ, dt, R², γn, Rn², Lx, Ly, cell_width)
+@kernel function calculate_θ_updates_kernel!(
+    θ_updates,
+    @Const(cell_neighbours_list),
+    @Const(cell_address_list),
+    @Const(cell_num_particles_list),
+    @Const(occupied_cells_particle_IDs),
+    @Const(occupied_cells_particle_rs),
+    @Const(occupied_cells_particle_θs),
+    @Const(occupied_cells_ID_list),
+    @Const(num_occupied_cells),
+    γ,
+    dt,
+    R²,
+    γn,
+    Rn², 
+    Lx,
+    Ly,
+    cell_width
+)
+
     gi = @index(Group, Linear)
     li = @index(Local, Linear)
 

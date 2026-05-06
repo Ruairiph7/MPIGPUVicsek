@@ -39,13 +39,10 @@ function initialise_particles(max_particles_per_rank, x_min, x_max, N_total, Lx,
     end
     MPI.Bcast!(rs_all_flat, 0, comm)
 
-    @show rank, typeof(rs_all_flat), eltype(rs_all_flat), length(rs_all_flat)
-    length(rs_all_flat) > 0 && @show rank, rs_all_flat[1:min(6,end)]
-    @assert length(rs_all_flat)÷2 == N_total
+    @assert length(rs_all_flat) ÷ 2 == N_total
     for i in 1:N_total
-        rs_all[i] = SVector{2,Float32}(rs_all_flat[2i-1],rs_all_flat[2i])
+        rs_all[i] = SVector{2,Float32}(rs_all_flat[2i-1], rs_all_flat[2i])
     end #for i
-    # rs_all = [SVector{2,Float32}(rs_all_flat[2i-1:2i]) for i in 1:(length(rs_all_flat)÷2)]
 
     MPI.Bcast!(θs_all, 0, comm)
 

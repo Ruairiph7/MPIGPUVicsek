@@ -1,6 +1,6 @@
 # --------- Update particles ---------
 
-function update_particles!(particles, θ_updates, λ, dt, v, Lx, Ly)
+function update_particles!(particles, θ_updates, num_params)
     num_particles = length(particles)
     rand1 = CUDA.rand(num_particles)
     rand2 = CUDA.rand(num_particles)
@@ -10,11 +10,34 @@ function update_particles!(particles, θ_updates, λ, dt, v, Lx, Ly)
     total_num_threads = workgroup_size * num_workgroups
 
     kernel! = update_particles_kernel!(CUDABackend())
-    kernel!(particles, θ_updates, λ, dt, v, Lx, Ly, rand1, rand2, num_particles; ndrange=total_num_threads)
+    kernel!(
+        particles, 
+        θ_updates,
+        num_params.λ,
+        num_params.dt,
+        num_params.v,
+        num_params.Lx,
+        num_params.Ly,
+        rand1,
+        rand2,
+        num_particles;
+        ndrange=total_num_threads
+    )
     KernelAbstractions.synchronize(CUDABackend())
 end #function
 
-@kernel function update_particles_kernel!(particles, @Const(θ_updates), λ, dt, v, Lx, Ly, @Const(rand1), @Const(rand2), num_particles)
+@kernel function update_particles_kernel!(
+    particles,
+    @Const(θ_updates),
+    λ,
+    dt,
+    v,
+    Lx,
+    Ly,
+    @Const(rand1),
+    @Const(rand2),
+    num_particles
+)
     I = @index(Global, Linear)
     # stride = @ndrange()
     stride = 256*256

@@ -2,7 +2,7 @@
 # Ghost particle extraction on GPU
 # ------------------------------------------------------------
 
-@kernel function extract_ghosts_kernel!(lefts, rights, counters, @Const(particles), n, x_min, x_max, R)
+@kernel function extract_ghosts_kernel!(lefts, rights, counters, @Const(particles), n, x_min, x_max, min_cell_width)
     I = @index(Global)
     # stride = @ndrange()
     stride = 256 * 256
@@ -10,17 +10,17 @@
     for i = I:stride:n
         p = particles[i]
         x = p.r[1]
-        if x < x_min + R #Ghost to be sent left
+        if x < x_min + min_cell_width #Ghost to be sent left
             idx = CUDA.atomic_add!(pointer(counters, 1), Int32(1))
             lefts[idx+1] = p
-        elseif x > x_max - R #Ghost to be sent right
+        elseif x > x_max - min_cell_width #Ghost to be sent right
             idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
             rights[idx+1] = p
         end #if
     end #for j
 end #function
 
-function extract_ghosts!(bufs, particles, x_min, x_max, R)
+function extract_ghosts!(bufs, particles, x_min, x_max, min_cell_width)
     n = length(particles)
     if n == 0
         return (CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0))
@@ -33,7 +33,7 @@ function extract_ghosts!(bufs, particles, x_min, x_max, R)
     total_num_threads = workgroup_size * num_workgroups
 
     kernel! = extract_ghosts_kernel!(CUDABackend())
-    kernel!(bufs.lefts, bufs.rights, bufs.counters, particles, n, x_min, x_max, R; ndrange=total_num_threads)
+    kernel!(bufs.lefts, bufs.rights, bufs.counters, particles, n, x_min, x_max, min_cell_width; ndrange=total_num_threads)
     KernelAbstractions.synchronize(CUDABackend())
 
     counters_cpu = Array(bufs.counters)
@@ -47,7 +47,7 @@ end #function
 # Ghost particle exchange (GPU-only serialisation)
 # ------------------------------------------------------------
 
-function exchange_ghosts!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs; SINGLE_RANK=false)
+function exchange_ghosts!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, x_max, min_cell_width, ghost_bufs; SINGLE_RANK=false)
 
     # --- If only a single GPU, no ghost exchange needed ---
     if SINGLE_RANK
@@ -60,7 +60,7 @@ function exchange_ghosts!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, 
     right_rank = (rank == nprocs - 1) ? 0 : rank + 1
 
     # 1. Identify ghosts
-    ghosts_left_view, ghosts_right_view = extract_ghosts!(ghost_bufs, local_particles, x_min, x_max, R)
+    ghosts_left_view, ghosts_right_view = extract_ghosts!(ghost_bufs, local_particles, x_min, x_max, min_cell_width)
 
     # 2. Serialize on device
     send_left_count, send_right_count = pack_particles_to_f32!(mpi_bufs, ghosts_left_view, ghosts_right_view)

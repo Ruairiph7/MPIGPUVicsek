@@ -36,7 +36,7 @@ function run_simulation(N_total, max_steps;
 )
 
     #Store numerical parameters
-    num_params = (; dt, R, Rn, γ, γn, λ, Lx, Ly, v)
+    numerical_params = (; dt, R, Rn, γ, γn, λ, Lx, Ly, v)
 
     #Store output parameters
     out_params = (; save_OPs, save_plots, save_coords, steps_to_save_OPs, steps_to_save_plots, steps_to_save_coords, steps_to_new_OP_file, file_name_addon, markersize)
@@ -53,6 +53,10 @@ function run_simulation(N_total, max_steps;
     if algorithm ∉ (:dynamic_cell_list, :simple_cell_list)
         error("Only accepted algorithms: ':dynamic_cell_list' or 'simple_cell_list'")
     end #if
+    if algorithm == :dynamic_cell_list
+        include("DataStructures/DynamicCellLists/dynamiccelllists.jl")
+        include("GPUAlgorithms/DynamicCellLists/dynamiccelllists.jl")
+    end #if algorithm
 
     # ----- Prepare for MPI -----
     rank = MPI.Comm_rank(comm)
@@ -65,16 +69,6 @@ function run_simulation(N_total, max_steps;
         max_particles_per_rank = N_total
         max_sendrecv_particles = 0
     end #if
-
-    if rank == 0
-        @warn "assign_particles! workgroup_size, num_workgroups hard-coded at 256"
-        @warn "prep_cell_lists! workgroup_size, num_workgroups hard-coded at 256"
-        @warn "update_particles! workgroup_size, num_workgroups hard-coded at 256"
-        @warn "extract_ghosts workgroup_size, num_workgroups hard-coded at 256"
-        @warn "extract_migrants workgroup_size, num_workgroups hard-coded at 256"
-        @warn "(de)serialize_kernel workgroup_size, num_workgroups hard-coded at 256"
-        @warn "HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 1024"
-    end #if (rank == 0)
 
     #TODO: CHECK THIS
     # # set CUDA device using local rank mapping to avoid colliding GPUs across nodes
@@ -90,18 +84,25 @@ function run_simulation(N_total, max_steps;
     x_max = (rank + 1) * Lx_local
 
     #Initialise cell list parameters
-    cell_width = maximum([R, Rn])
-    cell_list_params = CellListParams(x_min - cell_width, Lx_local + 2 * cell_width, Ly, cell_width)
+    min_cell_width = maximum([R, Rn])
+    cell_list_params = CellListParams(x_min - min_cell_width, Lx_local + 2 * min_cell_width, Ly, min_cell_width)
 
-    #Set max_num_occupied_cells
-    if isnothing(max_num_occupied_cells)
-        max_num_occupied_cells = ceil(Int32, 4 * cell_list_params.num_boxes / 7)
-        rank == 0 && @show max_num_occupied_cells
-    end #if isnothing()
+    alg_data = (;)
+    if algorithm == :dynamic_cell_list
+        if rank == 0
+            @warn "HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 1024"
+        end #if (rank == 0)
 
-    #Initialise dynamic cell lists data structures
-    num_occupied_cells = ArrayType([Int32(0)])
-    cells_data = initialise_data_structures(cell_list_params, max_num_occupied_cells, max_particles_in_cell, ArrayType)
+        #Set max_num_occupied_cells
+        if isnothing(max_num_occupied_cells)
+            max_num_occupied_cells = ceil(Int32, 4 * cell_list_params.num_boxes / 7)
+            rank == 0 && @show max_num_occupied_cells
+        end #if isnothing()
+
+        #Initialise dynamic cell lists data structures
+        num_occupied_cells = ArrayType([Int32(0)])
+        alg_data = initialise_data_structures(cell_list_params, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType)
+    end #if algorithm
 
     #Set max_particles_per_rank
     if isnothing(max_particles_per_rank)
@@ -164,15 +165,15 @@ function run_simulation(N_total, max_steps;
         #---------------------------------------------#
 
         #Exchange ghosts serialized into buffers
-        recv_left_buf, recv_right_buf = exchange_ghosts!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, R, ghost_bufs, SINGLE_RANK=SINGLE_RANK)
+        recv_left_buf, recv_right_buf = exchange_ghosts!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, min_cell_width, ghost_bufs, SINGLE_RANK=SINGLE_RANK)
 
         #Check if we need to raise max_particles_per_rank (locally on just this rank)
         n_left = length(recv_left_buf) ÷ 4
         n_right = length(recv_right_buf) ÷ 4
-        num_particles = num_local_particles + n_left + n_right
+        extended_num_local_particles = num_local_particles + n_left + n_right
 
-        if num_particles > max_particles_per_rank
-            max_particles_per_rank = ceil(Int32, num_particles * 1.1) #Raise maximum
+        if extended_num_local_particles > max_particles_per_rank
+            max_particles_per_rank = ceil(Int32, extended_num_local_particles * 1.1) #Raise maximum
             println("Rank " * string(rank) * ": Rasing max_particles_per_rank to " * string(max_particles_per_rank))
 
             local_particles_cpu = Array(local_particles) #Store local particles
@@ -182,8 +183,8 @@ function run_simulation(N_total, max_steps;
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
 
         #Else: try to lower maximum every steps_to_shrink_buffers steps
-        elseif time_step % steps_to_shrink_buffers == 0 && max_particles_per_rank > 1.7 * num_particles
-            max_particles_per_rank = maximum((ceil(Int32, num_particles * 1.7), Int32(10000))) #Lower maximum
+        elseif time_step % steps_to_shrink_buffers == 0 && max_particles_per_rank > 1.7 * extended_num_local_particles
+            max_particles_per_rank = maximum((ceil(Int32, extended_num_local_particles * 1.7), Int32(10000))) #Lower maximum
             println("Rank " * string(rank) * ": Lowering max_particles_per_rank to " * string(max_particles_per_rank))
 
             local_particles_cpu = Array(local_particles) #Store local particles
@@ -199,43 +200,10 @@ function run_simulation(N_total, max_steps;
 
         if num_local_particles != 0
 
-            # Carry out cell lists algorithms
-            #---------------------------------------------#
-            #Algorithm 1
-
-            prep_cell_lists!(cells_data, num_occupied_cells, view(particles, 1:num_particles), cell_list_params, num_particles)
-
-            #Check if we can lower max_num_occupied_cells at regular intervals
-            if time_step % steps_to_shrink_buffers == 0
-                lower_max_num_occupied_cells = lower_max_num_occupied_cells_check(num_occupied_cells, cells_data.occupied_IDs, cell_list_params)
-                if lower_max_num_occupied_cells != false
-                    new_max, max_particles_in_cell = lower_max_num_occupied_cells
-                    println("Rank " * string(rank) * ": Lowering max_num_occupied_cells to " * string(new_max))
-                    reallocate_occupied_cells_lists!(cells_data, new_max, max_particles_in_cell, ArrayType)
-                    KernelAbstractions.synchronize(backend)
-                end #if lower_max_num_occupied_cells
-            end #if time_step
-
-            #Check if we need to update max_num_occupied_cells
-            update_max_num_occupied_cells = check_num_occupied_cells(num_occupied_cells,
-                cells_data.occupied_IDs, cell_list_params)
-            if update_max_num_occupied_cells != false
-                new_max, max_particles_in_cell = update_max_num_occupied_cells
-                println("Rank " * string(rank) * ": Raising max_num_occupied_cells to " * string(new_max))
-                reallocate_occupied_cells_lists!(cells_data, new_max, max_particles_in_cell, ArrayType)
-                KernelAbstractions.synchronize(backend)
-            end #if
-
-            #Algorithm 2
-            assign_particles!(cells_data, view(particles, 1:num_particles), cell_list_params, num_particles)
-
-            #Algorithm 3
-            calculate_θ_updates!(θ_updates, cells_data, num_params, cell_width, num_occupied_cells, cell_list_params.num_boxes)
-
-            #---------------------------------------------#
+            get_updates!(θ_updates, view(particles, 1:extended_num_local_particles), alg_data, cell_list_params, extended_num_local_particles, numerical_params, min_cell_width)
 
             #Update local particles only
-            update_particles!(local_particles, θ_updates, num_params)
+            update_particles!(local_particles, θ_updates, numerical_params)
 
         else # -> num_local_particles = 0
             # @show rank, "no local particles"
@@ -245,7 +213,7 @@ function run_simulation(N_total, max_steps;
         #Migrate particles that have moved domains
         #---------------------------------------------#
         #Find stayers; exchange migrants serialized into buffers
-        stayers, recv_left_buf, recv_right_buf = exchange_migrants!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs, SINGLE_RANK=SINGLE_RANK)
+        stayers, recv_left_buf, recv_right_buf = exchange_migrants!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, min_cell_width, migrant_bufs, SINGLE_RANK=SINGLE_RANK)
 
         #Check if we need to raise max_particles_per_rank (locally on just this rank)
         n_stay = length(stayers)
@@ -253,7 +221,7 @@ function run_simulation(N_total, max_steps;
         n_right = length(recv_right_buf) ÷ 4
         num_local_particles = n_stay + n_left + n_right
         if num_local_particles > max_particles_per_rank
-            max_particles_per_rank = num_particles * 1.1 #Raise maximum
+            max_particles_per_rank = ceil(Int32, num_local_particles * 1.1) #Raise maximum
             println("Rank " * string(rank) * ": Rasing max_particles_per_rank to " * string(max_particles_per_rank))
             particles = CuArray{Particle}(undef, max_particles_per_rank) #Reallocate particles
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
@@ -275,7 +243,7 @@ function run_simulation(N_total, max_steps;
         end #if
 
         if save_plots || save_OPs
-            save_plots_and_OPs(time_step, local_particles, output_params, num_params, OP_m_file, OP_S_file, rank, comm)
+            save_plots_and_OPs(time_step, local_particles, output_params, numerical_params, OP_m_file, OP_S_file, rank, comm)
         end #if
 
         if rank == 0 && time_step % steps_to_new_OP_file == 0

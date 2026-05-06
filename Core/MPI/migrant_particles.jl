@@ -2,7 +2,7 @@
 # GPU Migrant detection
 # ------------------------------------------------------------
 
-@kernel function sort_migrants_kernel!(stayers, lefts, rights, counters, @Const(particles), x_min, x_max, cell_width, n)
+@kernel function sort_migrants_kernel!(stayers, lefts, rights, counters, @Const(particles), x_min, x_max, min_cell_width, n)
     I = @index(Global)
     # stride = @ndrange()
     stride = 256 * 256
@@ -10,16 +10,16 @@
     for i = I:stride:n
         p = particles[i]
         x = p.r[1]
-        if x_min - cell_width <= x < x_min #Particle is in the cell immediately to the left; moved to left domain
+        if x_min - min_cell_width <= x < x_min #Particle is in the cell immediately to the left; moved to left domain
             idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
             lefts[idx+1] = p
-        elseif x < x_min - cell_width #Particle has been wrapped round to the left; moved to "right" domain (PBCs)
+        elseif x < x_min - min_cell_width #Particle has been wrapped round to the left; moved to "right" domain (PBCs)
             idx = CUDA.atomic_add!(pointer(counters, 3), Int32(1))
             rights[idx+1] = p
-        elseif x_max + cell_width >= x >= x_max #Particle is in the cell immediately to the right; moved to right domain
+        elseif x_max + min_cell_width >= x >= x_max #Particle is in the cell immediately to the right; moved to right domain
             idx = CUDA.atomic_add!(pointer(counters, 3), Int32(1))
             rights[idx+1] = p
-        elseif x > x_max + cell_width #Particle has been wrapped round to the right; moved to "left" domain (PBCs)
+        elseif x > x_max + min_cell_width #Particle has been wrapped round to the right; moved to "left" domain (PBCs)
             idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
             lefts[idx+1] = p
         else #Particle has remained in this domain
@@ -29,7 +29,7 @@
     end #for i
 end
 
-function sort_migrants!(bufs, particles, x_min, x_max, cell_width)
+function sort_migrants!(bufs, particles, x_min, x_max, min_cell_width)
     n = length(particles)
     if n == 0
         return (CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0))
@@ -42,7 +42,7 @@ function sort_migrants!(bufs, particles, x_min, x_max, cell_width)
     total_num_threads = workgroup_size * num_workgroups
 
     kernel! = sort_migrants_kernel!(CUDABackend())
-    kernel!(bufs.stayers, bufs.lefts, bufs.rights, bufs.counters, particles, x_min, x_max, cell_width, n; ndrange=total_num_threads)
+    kernel!(bufs.stayers, bufs.lefts, bufs.rights, bufs.counters, particles, x_min, x_max, min_cell_width, n; ndrange=total_num_threads)
     KernelAbstractions.synchronize(CUDABackend())
 
     counters_cpu = Array(bufs.counters)
@@ -54,7 +54,7 @@ end
 # ------------------------------------------------------------
 # Migration exchange between ranks
 # ------------------------------------------------------------
-function exchange_migrants!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, x_max, cell_width, migrant_bufs; SINGLE_RANK=false)
+function exchange_migrants!(mpi_bufs, local_particles, comm, rank, nprocs, x_min, x_max, min_cell_width, migrant_bufs; SINGLE_RANK=false)
 
     # --- If only a single GPU, all particles are stayers ---
     if SINGLE_RANK
@@ -67,7 +67,7 @@ function exchange_migrants!(mpi_bufs, local_particles, comm, rank, nprocs, x_min
     right_rank = (rank == nprocs - 1) ? 0 : rank + 1
 
     # 1. GPU-only detection + compaction of migrants
-    stayers_view, migrants_left_view, migrants_right_view = sort_migrants!(migrant_bufs, local_particles, x_min, x_max, cell_width)
+    stayers_view, migrants_left_view, migrants_right_view = sort_migrants!(migrant_bufs, local_particles, x_min, x_max, min_cell_width)
 
     # 2. Serialize migrants
     send_left_count, send_right_count = pack_particles_to_f32!(mpi_bufs, migrants_left_view, migrants_right_view)

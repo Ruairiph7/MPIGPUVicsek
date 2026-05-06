@@ -1,6 +1,6 @@
 # --------- Update particles ---------
 
-function update_particles!(particles, θ_updates, num_params)
+function update_particles!(particles, θ_updates, numerical_params)
     num_particles = length(particles)
     rand1 = CUDA.rand(num_particles)
     rand2 = CUDA.rand(num_particles)
@@ -11,13 +11,13 @@ function update_particles!(particles, θ_updates, num_params)
 
     kernel! = update_particles_kernel!(CUDABackend())
     kernel!(
-        particles, 
+        particles,
         θ_updates,
-        num_params.λ,
-        num_params.dt,
-        num_params.v,
-        num_params.Lx,
-        num_params.Ly,
+        numerical_params.λ,
+        numerical_params.dt,
+        numerical_params.v,
+        numerical_params.Lx,
+        numerical_params.Ly,
         rand1,
         rand2,
         num_particles;
@@ -40,7 +40,7 @@ end #function
 )
     I = @index(Global, Linear)
     # stride = @ndrange()
-    stride = 256*256
+    stride = 256 * 256
 
     for i = I:stride:num_particles
         this_particle = particles[i]

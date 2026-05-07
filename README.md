@@ -89,13 +89,15 @@ test = CuArray([1,2,3])
 
 - If you only intend to use a single GPU, then the code requires an MPI installation, but you do not need to worry about specifics or if it is CUDA-aware. If ```which mpirun``` returns a path, then it should be sufficient. If it does not, then on an HPC system you may have to first load an MPI module via e.g. "module load openmpi/x.x.x".
 
-- If using multiple GPUs, you need a CUDA-aware MPI installation that is compatible with your CUDA version. Setting this up can be very fiddly and different on each system, but the following is a good starting point. On HPC systems, CUDA and CUDA-aware MPI may come as separate modules you must load, or they may be bundled together into a NVHPC module. Once you find an MPI installation, you can test whether it should be CUDA-aware with the following shell commands:
+- If using multiple GPUs, you need a CUDA-aware MPI installation that is compatible with your CUDA version. Setting this up can be very fiddly and different on each system, but the following is a good starting point. 
+
+- On HPC systems, CUDA and CUDA-aware MPI may come as separate modules you must load, or they may be bundled together into a single NVHPC module. Once you find an MPI installation, you can test whether it should be CUDA-aware with the following shell commands:
 ```
 ompi_info | grep -i cuda
 ompi_info --parsable --all | grep mpi_built_with_cuda_support:value
 ```
 
-- If these prove successfuly, then to configure MPI.jl first make sure that the installation is in the correct PATH environment variables outside of Julia. If ```which mpirun``` returns ```/xxx/yyy/zzz/bin/mpirun```, then call:
+- If these prove successful, then to configure MPI.jl first make sure that the installation is in the correct PATH environment variables outside of Julia. If ```which mpirun``` returns ```/xxx/yyy/zzz/bin/mpirun```, then call:
 ```
 export PATH=/xxx/yyy/zzz/bin/:$PATH
 export LD_LIBRARY_PATH=/xxx/yyy/zzz/lib:$LD_LIBRARY_PATH

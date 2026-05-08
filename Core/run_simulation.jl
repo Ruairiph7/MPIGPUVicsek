@@ -54,8 +54,9 @@ function run_simulation(N_total, max_steps;
         error("Only accepted algorithms: ':dynamic_cell_list' or 'simple_cell_list'")
     end #if
     if algorithm == :dynamic_cell_list
-        include(@__DIR__() * "/DataStructures/DynamicCellLists/dynamiccelllists.jl")
-        include(@__DIR__() * "GPUAlgorithms/DynamicCellLists/dynamiccelllists.jl")
+        initialise_θ_updates(N; ArrayType=CuArray) = initialise_θ_updates_dcl(N; ArrayType=ArrayType)
+        initialise_data_structures(params::CellListParams, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType) = initialise_data_structures_dcl(params, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType) 
+        get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width) = get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
     end #if algorithm
 
     # ----- Prepare for MPI -----

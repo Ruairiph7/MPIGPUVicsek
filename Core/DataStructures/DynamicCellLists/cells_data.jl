@@ -1,10 +1,10 @@
 # --------- Initialise data structures ---------
 
-function initialise_θ_updates(N; ArrayType=CuArray)
+function initialise_θ_updates_dcl(N; ArrayType=CuArray)
     return ArrayType(zeros(Float32, N))
 end #function
 
-function initialise_data_structures(params::CellListParams, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType)
+function initialise_data_structures_dcl(params::CellListParams, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType)
     neighbours = build_cell_neighbours_list(params, ArrayType)
     addresses = build_cell_address_list(params, ArrayType)
     num_particles = build_cell_num_particles_list(params, ArrayType)

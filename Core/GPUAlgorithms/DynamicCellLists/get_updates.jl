@@ -1,6 +1,6 @@
 # Carry out cell lists algorithms
 #---------------------------------------------#
-function get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
+function get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
     #Algorithm 1
     prep_cell_lists!(cells_data, cells_data.num_occupied, particles, cell_list_params, num_particles)
 

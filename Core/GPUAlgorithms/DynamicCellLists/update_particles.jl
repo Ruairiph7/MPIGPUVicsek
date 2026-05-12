@@ -1,9 +1,9 @@
 # --------- Update particles ---------
 
-function update_particles!(particles, θ_updates, numerical_params)
+function update_particles!(particles, θ_updates, numerical_params, rand_bufs)
     num_particles = length(particles)
-    rand1 = CUDA.rand(num_particles)
-    rand2 = CUDA.rand(num_particles)
+    CUDA.rand!(rand_bufs.rand1)
+    CUDA.rand!(rand_bufs.rand2)
 
     workgroup_size = 256
     num_workgroups = 256
@@ -18,8 +18,8 @@ function update_particles!(particles, θ_updates, numerical_params)
         numerical_params.v,
         numerical_params.Lx,
         numerical_params.Ly,
-        rand1,
-        rand2,
+        rand_bufs.rand1,
+        rand_bufs.rand2,
         num_particles;
         ndrange=total_num_threads
     )

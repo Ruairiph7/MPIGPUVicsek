@@ -54,8 +54,9 @@ function run_simulation(N_total, max_steps;
         error("Only accepted algorithms: ':dynamic_cell_list' or 'simple_cell_list'")
     end #if
     if algorithm == :dynamic_cell_list
+        initialise_rand_bufs(N; ArrayType=CuArray) = initialise_rand_bufs_dcl(N; ArrayType=ArrayType)
         initialise_θ_updates(N; ArrayType=CuArray) = initialise_θ_updates_dcl(N; ArrayType=ArrayType)
-        initialise_data_structures(params::CellListParams, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType) = initialise_data_structures_dcl(params, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType) 
+        initialise_data_structures(params::CellListParams, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType) = initialise_data_structures_dcl(params, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType)
         get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType)
     end #if algorithm
 
@@ -135,6 +136,9 @@ function run_simulation(N_total, max_steps;
     #(greatly simplifies code)
     θ_updates = initialise_θ_updates(max_particles_per_rank, ArrayType=ArrayType)
 
+    #Initialise buffers to store random numbers for particle updates
+    rand_bufs = initialise_rand_bufs(max_particles_per_rank, ArrayType=ArrayType)
+
     #Open file if saving order parameter - will all be handled by rank 0
     OP_m_file = nothing
     OP_S_file = nothing
@@ -182,6 +186,7 @@ function run_simulation(N_total, max_steps;
             particles[1:num_local_particles] .= CuArray(local_particles_cpu) #Retrieve local particles
             local_particles = view(particles, 1:num_local_particles) #Reset local_particles
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
+            rand_bufs = initialise_rand_bufs(max_particles_per_rank) #Reinitialse rand_bufs
 
         #Else: try to lower maximum every steps_to_shrink_buffers steps
         elseif time_step % steps_to_shrink_buffers == 0 && max_particles_per_rank > 1.7 * extended_num_local_particles
@@ -193,6 +198,7 @@ function run_simulation(N_total, max_steps;
             particles[1:num_local_particles] .= CuArray(local_particles_cpu) #Retrieve local particles
             local_particles = view(particles, 1:num_local_particles) #Reset local_particles
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
+            rand_bufs = initialise_rand_bufs(max_particles_per_rank) #Reinitialse rand_bufs
         end #if
 
         #Deserialize ghosts and add into particles after local_particles
@@ -204,7 +210,7 @@ function run_simulation(N_total, max_steps;
             get_updates!(θ_updates, view(particles, 1:extended_num_local_particles), alg_data, cell_list_params, extended_num_local_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType)
 
             #Update local particles only
-            update_particles!(local_particles, θ_updates, numerical_params)
+            update_particles!(local_particles, θ_updates, numerical_params, rand_bufs)
 
         else # -> num_local_particles = 0
             # @show rank, "no local particles"
@@ -226,6 +232,7 @@ function run_simulation(N_total, max_steps;
             println("Rank " * string(rank) * ": Rasing max_particles_per_rank to " * string(max_particles_per_rank))
             particles = CuArray{Particle}(undef, max_particles_per_rank) #Reallocate particles
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
+            rand_bufs = initialise_rand_bufs(max_particles_per_rank) #Reinitialse rand_bufs
         end #if
 
         #Load stayers into the beginning of particles

@@ -10,6 +10,12 @@ function initialise_θ_updates_dcl(N; ArrayType=CuArray)
     return ArrayType(zeros(Float32, N))
 end #function
 
+function initialise_rand_bufs_dcl(N; ArrayType=CuArray)
+    rand1 = ArrayType(zeros(Float32, N))
+    rand2 = ArrayType(zeros(Float32, N))
+    return (; rand1, rand2)
+end #function
+
 function initialise_data_structures_dcl(params::CellListParams, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType)
     neighbours = build_cell_neighbours_list(params, ArrayType)
     addresses = build_cell_address_list(params, ArrayType)
@@ -17,7 +23,7 @@ function initialise_data_structures_dcl(params::CellListParams, max_num_occupied
     occupied_rs = build_occupied_cells_particle_rs(max_num_occupied_cells, max_particles_in_cell, ArrayType)
     occupied_θs = build_occupied_cells_particle_θs(max_num_occupied_cells, max_particles_in_cell, ArrayType)
     occupied_IDs = build_occupied_cells_particle_IDs(max_num_occupied_cells, max_particles_in_cell, ArrayType)
-    occupied_coords = OccupiedCoords{ArrayType}(occupied_rs,occupied_θs,occupied_IDs)
+    occupied_coords = OccupiedCoords{ArrayType}(occupied_rs, occupied_θs, occupied_IDs)
     occupied_ID_list = build_occupied_cells_ID_list(params::CellListParams, ArrayType)
     max_num_occupied = max_num_occupied_cells
     num_occupied = num_occupied_cells

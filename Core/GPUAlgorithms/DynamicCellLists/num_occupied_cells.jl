@@ -24,8 +24,8 @@ function lower_max_num_occupied_cells_check(num_occupied_cells, occupied_cells_p
 end #function
 
 function reallocate_occupied_cells_lists!(cells_data, new_max, max_particles_in_cell, ArrayType)
-    cells_data.occupied_IDs = build_occupied_cells_particle_IDs(new_max, max_particles_in_cell, ArrayType)
-    cells_data.occupied_rs = build_occupied_cells_particle_rs(new_max, max_particles_in_cell, ArrayType)
-    cells_data.occupied_θs = build_occupied_cells_particle_θs(new_max, max_particles_in_cell, ArrayType)
+    cells_data.occupied_coords.IDs = build_occupied_cells_particle_IDs(new_max, max_particles_in_cell, ArrayType)
+    cells_data.occupied_coords.rs = build_occupied_cells_particle_rs(new_max, max_particles_in_cell, ArrayType)
+    cells_data.occupied_coords.θs = build_occupied_cells_particle_θs(new_max, max_particles_in_cell, ArrayType)
     return nothing
 end #function

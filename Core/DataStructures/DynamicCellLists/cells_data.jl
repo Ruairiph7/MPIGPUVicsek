@@ -1,5 +1,11 @@
 # --------- Initialise data structures ---------
 
+mutable struct OccupiedCoords{ArrayType}
+    rs::ArrayType
+    θs::ArrayType
+    IDs::ArrayType
+end #struct
+
 function initialise_θ_updates_dcl(N; ArrayType=CuArray)
     return ArrayType(zeros(Float32, N))
 end #function
@@ -8,13 +14,14 @@ function initialise_data_structures_dcl(params::CellListParams, max_num_occupied
     neighbours = build_cell_neighbours_list(params, ArrayType)
     addresses = build_cell_address_list(params, ArrayType)
     num_particles = build_cell_num_particles_list(params, ArrayType)
-    occupied_IDs = build_occupied_cells_particle_IDs(max_num_occupied_cells, max_particles_in_cell, ArrayType)
     occupied_rs = build_occupied_cells_particle_rs(max_num_occupied_cells, max_particles_in_cell, ArrayType)
     occupied_θs = build_occupied_cells_particle_θs(max_num_occupied_cells, max_particles_in_cell, ArrayType)
+    occupied_IDs = build_occupied_cells_particle_IDs(max_num_occupied_cells, max_particles_in_cell, ArrayType)
+    occupied_coords = OccupiedCoords{ArrayType}(occupied_rs,occupied_θs,occupied_IDs)
     occupied_ID_list = build_occupied_cells_ID_list(params::CellListParams, ArrayType)
     max_num_occupied = max_num_occupied_cells
     num_occupied = num_occupied_cells
-    return (; neighbours, addresses, num_particles, occupied_IDs, occupied_rs, occupied_θs, occupied_ID_list, max_num_occupied, num_occupied)
+    return (; neighbours, addresses, num_particles, occupied_coords, occupied_ID_list, max_num_occupied, num_occupied)
 end #function
 
 function build_cell_neighbours_list(params::CellListParams, ArrayType)

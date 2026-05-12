@@ -1,7 +1,8 @@
 # --------- Calculate num occupied cells, and assign addresses (Algorithm 1) ---------
 
 function prep_cell_lists!(cells_data, num_occupied_cells, particles, cell_list_params, num_particles)
-    cell_num_particles_list .= Int32(0)
+
+    cells_data.num_particles .= Int32(0)
     num_occupied_cells .= Int32(0)
 
     workgroup_size = 256
@@ -9,7 +10,8 @@ function prep_cell_lists!(cells_data, num_occupied_cells, particles, cell_list_p
     total_num_threads = workgroup_size * num_workgroups
 
     kernel! = prep_cell_lists_kernel!(CUDABackend())
-    kernel!(cells_data.addresses, cells_data.num_particles, cells_data.occupied_IDs, num_occupied_cells, particles, cell_list_params, num_particles; ndrange=total_num_threads)
+    kernel!(cells_data.addresses, cells_data.num_particles, cells_data.occupied_ID_list, num_occupied_cells, particles, cell_list_params, num_particles; ndrange=total_num_threads)
+
     KernelAbstractions.synchronize(CUDABackend())
 end #function
 

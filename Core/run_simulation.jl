@@ -39,7 +39,7 @@ function run_simulation(N_total, max_steps;
     numerical_params = (; dt, R, Rn, γ, γn, λ, Lx, Ly, v)
 
     #Store output parameters
-    out_params = (; save_OPs, save_plots, save_coords, steps_to_save_OPs, steps_to_save_plots, steps_to_save_coords, steps_to_new_OP_file, file_name_addon, markersize)
+    output_params = (; save_OPs, save_plots, save_coords, steps_to_save_OPs, steps_to_save_plots, steps_to_save_coords, steps_to_new_OP_file, file_name_addon, markersize)
 
     #Store correct backend
     if ArrayType == CuArray
@@ -56,7 +56,7 @@ function run_simulation(N_total, max_steps;
     if algorithm == :dynamic_cell_list
         initialise_θ_updates(N; ArrayType=CuArray) = initialise_θ_updates_dcl(N; ArrayType=ArrayType)
         initialise_data_structures(params::CellListParams, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType) = initialise_data_structures_dcl(params, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType) 
-        get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width) = get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
+        get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType)
     end #if algorithm
 
     # ----- Prepare for MPI -----
@@ -139,7 +139,7 @@ function run_simulation(N_total, max_steps;
     OP_m_file = nothing
     OP_S_file = nothing
     if rank == 0
-        if save_snapshots
+        if save_plots
             plots_dir = "plots/"
             mkpath(plots_dir)
         end #if save_snapshots
@@ -201,7 +201,7 @@ function run_simulation(N_total, max_steps;
 
         if num_local_particles != 0
 
-            get_updates!(θ_updates, view(particles, 1:extended_num_local_particles), alg_data, cell_list_params, extended_num_local_particles, numerical_params, min_cell_width)
+            get_updates!(θ_updates, view(particles, 1:extended_num_local_particles), alg_data, cell_list_params, extended_num_local_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType)
 
             #Update local particles only
             update_particles!(local_particles, θ_updates, numerical_params)
@@ -240,7 +240,7 @@ function run_simulation(N_total, max_steps;
         #Deal with outputs
         #---------------------------------------------#
         if save_coords
-            save_coords(time_step, steps_to_save_coords, file_name_addon, local_particles, rank, comm)
+            write_coords(time_step, steps_to_save_coords, file_name_addon, local_particles, rank, comm)
         end #if
 
         if save_plots || save_OPs

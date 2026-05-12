@@ -1,13 +1,13 @@
 # --------- Locate particles to cells (Algorithm 2) ---------
 function assign_particles!(cells_data, particles, cell_list_params, num_particles)
-    cell_num_particles_list .= Int32(0)
+    cells_data.num_particles .= Int32(0)
 
     workgroup_size = 256
     num_workgroups = 256
     total_num_threads = workgroup_size * num_workgroups
 
     kernel! = assign_particles_kernel!(CUDABackend())
-    kernel!(cells_data.occupied_IDs, cells_data.occupied_rs, cells_data.occupied_θs, cells_data.addresses, cells_data.num_particles, particles, cell_list_params, num_particles; ndrange=total_num_threads)
+    kernel!(cells_data.occupied_coords.IDs, cells_data.occupied_coords.rs, cells_data.occupied_coords.θs, cells_data.addresses, cells_data.num_particles, particles, cell_list_params, num_particles; ndrange=total_num_threads)
     KernelAbstractions.synchronize(CUDABackend())
 end
 

@@ -1,10 +1,12 @@
-# --------- Initialise data structures ---------
+# --------- Struct definitions ---------
 
 mutable struct OccupiedCoords{ArrayType}
     rs::ArrayType
     θs::ArrayType
     IDs::ArrayType
 end #struct
+
+# --------- Initialise data structures ---------
 
 function initialise_θ_updates_dcl(N; ArrayType=CuArray)
     return ArrayType(zeros(Float32, N))

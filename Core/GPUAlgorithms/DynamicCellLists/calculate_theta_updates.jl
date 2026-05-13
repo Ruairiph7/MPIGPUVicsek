@@ -45,8 +45,8 @@ end #function
     min_cell_width
 )
 
-    gi = @index(Group, Linear)
-    li = @index(Local, Linear)
+    gi = Int32(@index(Group, Linear))
+    li = Int32(@index(Local, Linear))
 
     if gi <= num_occupied_cells[]
         this_cell_neighbours = @localmem SVector{8,Int32} 1

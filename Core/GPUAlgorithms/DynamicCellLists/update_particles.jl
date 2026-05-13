@@ -38,9 +38,8 @@ end #function
     @Const(rand2),
     num_particles
 )
-    I = @index(Global, Linear)
-    # stride = @ndrange()
-    stride = 256 * 256
+    I = Int32(@index(Global, Linear))
+    stride = Int32(@ndrange()[1])
 
     for i = I:stride:num_particles
         this_particle = particles[i]

@@ -27,7 +27,7 @@ function get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, n
     end #if
 
     #Algorithm 2
-    assign_particles!(cells_data, particles, cell_list_params, num_particles)
+    assign_particles_dcl!(cells_data, particles, cell_list_params, num_particles)
 
     #Algorithm 3
     calculate_θ_updates!(θ_updates, cells_data, numerical_params, min_cell_width, cells_data.num_occupied, cell_list_params.num_boxes)

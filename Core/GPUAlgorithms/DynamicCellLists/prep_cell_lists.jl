@@ -17,9 +17,8 @@ end #function
 
 
 @kernel function prep_cell_lists_kernel!(cell_address_list, cell_num_particles_list, occupied_cells_ID_list, num_occupied_cells, @Const(particles), cell_list_params, num_particles)
-    I = @index(Global, Linear)
-    # stride = @ndrange()
-    stride = 256 * 256
+    I = Int32(@index(Global, Linear))
+    stride = Int32(@ndrange()[1])
 
     for i = I:stride:num_particles
         r_i = particles[i].r

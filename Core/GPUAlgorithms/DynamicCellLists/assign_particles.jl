@@ -1,20 +1,19 @@
 # --------- Locate particles to cells (Algorithm 2) ---------
-function assign_particles!(cells_data, particles, cell_list_params, num_particles)
+function assign_particles_dcl!(cells_data, particles, cell_list_params, num_particles)
     cells_data.num_particles .= Int32(0)
 
     workgroup_size = 256
     num_workgroups = 256
     total_num_threads = workgroup_size * num_workgroups
 
-    kernel! = assign_particles_kernel!(CUDABackend())
+    kernel! = assign_particles_dcl_kernel!(CUDABackend())
     kernel!(cells_data.occupied_coords.IDs, cells_data.occupied_coords.rs, cells_data.occupied_coords.θs, cells_data.addresses, cells_data.num_particles, particles, cell_list_params, num_particles; ndrange=total_num_threads)
     KernelAbstractions.synchronize(CUDABackend())
 end
 
-@kernel function assign_particles_kernel!(occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, @Const(cell_address_list), cell_num_particles_list, @Const(particles), cell_list_params, num_particles)
-    I = @index(Global, Linear)
-    # stride = @ndrange()
-    stride = 256*256
+@kernel function assign_particles_dcl_kernel!(occupied_cells_particle_IDs, occupied_cells_particle_rs, occupied_cells_particle_θs, @Const(cell_address_list), cell_num_particles_list, @Const(particles), cell_list_params, num_particles)
+    I = Int32(@index(Global, Linear))
+    stride = Int32(@ndrange()[1])
 
     for i = I:stride:num_particles
         particle_i = particles[i]

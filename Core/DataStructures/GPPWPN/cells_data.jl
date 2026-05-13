@@ -16,9 +16,6 @@ function initialise_data_structures_gppwpn(cell_list_params::CellListParams, N)
     sorted_particles = CuArray(Vector{Particle}(undef, N)) #Particles sorted by cell index
     sorted_cells = CuArray(zeros(Int32, N)) #Corresponding cells to sorted_particles
     cell_starts = CuArray(zeros(Int32, cell_list_params.num_boxes)) #First index in sorted_particles for cell c
-    cell_ends = CuArray(zeros(Int32, cell_list_params.num_boxes)) #Last index in sorted_particles for cell c
+    cell_ends = CuArray(zeros(Int32, cell_list_params.num_boxes)) #Last index in sorted_particles for cell c (inclusive)
     return (; cell_indices, perm, sorted_particles, sorted_cells, cell_starts, cell_ends)
 end #function
-error("CHECK cell_ends is correct; i.e. last index or one past last index")
-
-

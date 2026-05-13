@@ -22,7 +22,7 @@ end #function
         if i == Int32(1) || sorted_cells[i-Int32(1)] != c
             cell_starts[c] = i
         end
-        if i == N || sorted_cells[i+Int32(1)] != c
+        if i == num_particles || sorted_cells[i+Int32(1)] != c
             cell_ends[c] = i
         end
     end #for i

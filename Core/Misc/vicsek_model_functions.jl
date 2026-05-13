@@ -20,11 +20,11 @@ end
     return norm(vector_OP)
 end
 
-function F(θ::Float32, R²::Float32)
-    return sin(θ) / (π * R²)
+@inline function F(θ::Float32, R²::Float32)
+    return sin(θ) / (Float32(π) * R²)
 end
 
-function Fn(θ::Float32, R²::Float32)
-    return sin(2 * θ) / (π * R²)
+@inline function Fn(θ::Float32, R²::Float32)
+    return sin(2 * θ) / (Float32(π) * R²)
 end
 

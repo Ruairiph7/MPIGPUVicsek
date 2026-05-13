@@ -1,6 +1,6 @@
 # Carry out cell lists algorithms
 #---------------------------------------------#
-function get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, ArrayType)
+function get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
 
     # --------- Create cell list data structures ---------    
 
@@ -20,6 +20,8 @@ function get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params
     find_cell_bounds!(cells_data, num_particles)
 
     # --------- Calculate θ_updates ---------    
+
+    calculate_θ_updates_gppwpn!(θ_updates, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
 
 end #function
 #---------------------------------------------#

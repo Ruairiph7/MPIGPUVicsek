@@ -1,6 +1,6 @@
 # --------- Calculate num occupied cells, and assign addresses (Algorithm 1) ---------
 
-function prep_cell_lists!(cells_data, num_occupied_cells, particles, cell_list_params, num_particles)
+function prep_cell_lists_dcl!(cells_data, num_occupied_cells, particles, cell_list_params, num_particles)
 
     cells_data.num_particles .= Int32(0)
     num_occupied_cells .= Int32(0)
@@ -9,14 +9,14 @@ function prep_cell_lists!(cells_data, num_occupied_cells, particles, cell_list_p
     num_workgroups = 256
     total_num_threads = workgroup_size * num_workgroups
 
-    kernel! = prep_cell_lists_kernel!(CUDABackend())
+    kernel! = prep_cell_lists_dcl_kernel!(CUDABackend())
     kernel!(cells_data.addresses, cells_data.num_particles, cells_data.occupied_ID_list, num_occupied_cells, particles, cell_list_params, num_particles; ndrange=total_num_threads)
 
     KernelAbstractions.synchronize(CUDABackend())
 end #function
 
 
-@kernel function prep_cell_lists_kernel!(cell_address_list, cell_num_particles_list, occupied_cells_ID_list, num_occupied_cells, @Const(particles), cell_list_params, num_particles)
+@kernel function prep_cell_lists_dcl_kernel!(cell_address_list, cell_num_particles_list, occupied_cells_ID_list, num_occupied_cells, @Const(particles), cell_list_params, num_particles)
     I = Int32(@index(Global, Linear))
     stride = Int32(@ndrange()[1])
 

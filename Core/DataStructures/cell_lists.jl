@@ -25,7 +25,7 @@ end
 
 # --------- Cell List Functions ---------
 
-function get_cell_ID(r, params::CellListParams)
+@inline function get_cell_ID(r, params::CellListParams)
     if r[1] > params.x_end #We're on rank 0 and r has wrapped round to the end of the domain
         x_idx = Int32(1)
     elseif r[1] < params.x_start #We're on rank nprocs-1 and r has wrapped round to the start of the domain
@@ -39,7 +39,7 @@ function get_cell_ID(r, params::CellListParams)
     return x_idx + params.num_boxes_x * (y_idx - Int32(1))
 end
 
-function scalar_to_vector_cell_ID(sID::Int32, num_boxes_x::Int32, num_boxes_y::Int32)
+@inline function scalar_to_vector_cell_ID(sID::Int32, num_boxes_x::Int32, num_boxes_y::Int32)
     vID = Vector{Int32}(undef, 2)
     #x component:
     if sID % num_boxes_x != 0
@@ -57,7 +57,7 @@ function scalar_to_vector_cell_ID(sID::Int32, num_boxes_x::Int32, num_boxes_y::I
     return Int32.(vID)
 end #function
 
-function vector_to_scalar_cell_ID(vID::Vector{Int32}, num_boxes_x::Int32, num_boxes_y::Int32)
+@inline function vector_to_scalar_cell_ID(vID::Vector{Int32}, num_boxes_x::Int32, num_boxes_y::Int32)
     #Apply PBCs (for neighbours outside the grid)
     if vID[2] == num_boxes_y + 1 #If above box, correct down
         true_vID_y = 1

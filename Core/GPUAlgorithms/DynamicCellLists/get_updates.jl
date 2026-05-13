@@ -3,7 +3,7 @@
 function get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType)
 
     #Algorithm 1
-    prep_cell_lists!(cells_data, cells_data.num_occupied, particles, cell_list_params, num_particles)
+    prep_cell_lists_dcl!(cells_data, cells_data.num_occupied, particles, cell_list_params, num_particles)
 
     #Check if we can lower max_num_occupied_cells at regular intervals
     if time_step % steps_to_shrink_buffers == 0
@@ -30,7 +30,7 @@ function get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, n
     assign_particles_dcl!(cells_data, particles, cell_list_params, num_particles)
 
     #Algorithm 3
-    calculate_θ_updates!(θ_updates, cells_data, numerical_params, min_cell_width, cells_data.num_occupied, cell_list_params.num_boxes)
+    calculate_θ_updates_dcl!(θ_updates, cells_data, numerical_params, min_cell_width, cells_data.num_occupied, cell_list_params.num_boxes)
 
 end #function
 #---------------------------------------------#

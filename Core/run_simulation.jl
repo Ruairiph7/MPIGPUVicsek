@@ -9,7 +9,7 @@ function run_simulation(N_total, max_steps;
     input_files::Union{Nothing,NTuple{3,String}}=nothing,
     dt::Float32=0.1f0,
     R::Float32=Float32(1 / sqrt(π)),
-    Rn::Float32=Float32(1 / sqrt(π)),
+    Rn::Float32=Float32(0),
     γ::Float32=0.5f0,
     γn::Float32=0.0f0,
     λ::Float32=0.08f0,
@@ -36,7 +36,9 @@ function run_simulation(N_total, max_steps;
 )
 
     #Store numerical parameters
-    numerical_params = (; dt, R, Rn, γ, γn, λ, Lx, Ly, v)
+    R² = R^2
+    Rn² = Rn^2
+    numerical_params = (; dt, R, Rn, R², Rn², γ, γn, λ, Lx, Ly, v)
 
     #Store output parameters
     output_params = (; save_OPs, save_plots, save_coords, steps_to_save_OPs, steps_to_save_plots, steps_to_save_coords, steps_to_new_OP_file, file_name_addon, markersize)
@@ -62,7 +64,7 @@ function run_simulation(N_total, max_steps;
         initialise_rand_bufs(N; ArrayType=CuArray) = initialise_rand_bufs_gppwpn(N; ArrayType=ArrayType)
         initialise_θ_updates(N; ArrayType=CuArray) = initialise_θ_updates_gppwpn(N; ArrayType=ArrayType)
         initialise_data_structures(cell_list_params::CellListParams, N) = initialise_data_structures_gppwpn(cell_list_params, N)
-        get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, ArrayType)
+        get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
     end #if algorithm
 
     # ----- Prepare for MPI -----
@@ -164,9 +166,6 @@ function run_simulation(N_total, max_steps;
     end #if
 
     #Perform simulation
-    R² = R^2
-    Rn² = Rn^2
-
     for time_step = 1:max_steps
 
         if rank == 0 && time_step % steps_to_log == 0

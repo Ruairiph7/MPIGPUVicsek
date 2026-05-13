@@ -1,10 +1,10 @@
 # --------- Calculate θ_updates (Algorithm 3) ---------
 # NOTE: Tumbling comes later in the kernel for updating particles.
 
-function calculate_θ_updates!(θ_updates, cells_data, numerical_params, min_cell_width, num_occupied_cells, num_cells)
+function calculate_θ_updates_dcl!(θ_updates, cells_data, numerical_params, min_cell_width, num_occupied_cells, num_cells)
     workgroup_size = 96
     total_num_threads = workgroup_size * num_cells
-    kernel! = calculate_θ_updates_kernel!(CUDABackend(), workgroup_size, total_num_threads)
+    kernel! = calculate_θ_updates_dcl_kernel!(CUDABackend(), workgroup_size, total_num_threads)
     kernel!(θ_updates,
         cells_data.neighbours,
         cells_data.addresses,
@@ -25,7 +25,7 @@ function calculate_θ_updates!(θ_updates, cells_data, numerical_params, min_cel
     KernelAbstractions.synchronize(CUDABackend())
 end #function
 
-@kernel function calculate_θ_updates_kernel!(
+@kernel function calculate_θ_updates_dcl_kernel!(
     θ_updates,
     @Const(cell_neighbours_list),
     @Const(cell_address_list),

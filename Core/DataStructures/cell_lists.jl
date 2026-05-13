@@ -18,6 +18,7 @@ function CellListParams(x_start::Real, Lx_local::Real, Ly::Real, R::Real)
     box_size_x = Float32(Lx_local / num_boxes_x)
     box_size_y = Float32(Ly / num_boxes_y)
     num_boxes = num_boxes_x * num_boxes_y
+    num_boxes >= typemax(Int32) && error("Too many boxes to resolve with Int32")
     x_end = x_start + Lx_local
     return CellListParams(Float32(x_start), Float32(x_end), box_size_x, box_size_y, num_boxes_x, num_boxes_y, num_boxes)
 end
@@ -33,9 +34,9 @@ function get_cell_ID(r, params::CellListParams)
         x_idx = ceil(Int32, (r[1] - params.x_start) / params.box_size_x)
     end #if r[1]
     y_idx = ceil(Int32, r[2] / params.box_size_y)
-    x_idx = clamp(x_idx, 1, params.num_boxes_x)
-    y_idx = clamp(y_idx, 1, params.num_boxes_y)
-    return Int32(x_idx + params.num_boxes_x * (y_idx - 1))
+    x_idx = clamp(x_idx, Int32(1), params.num_boxes_x)
+    y_idx = clamp(y_idx, Int32(1), params.num_boxes_y)
+    return x_idx + params.num_boxes_x * (y_idx - Int32(1))
 end
 
 function scalar_to_vector_cell_ID(sID::Int32, num_boxes_x::Int32, num_boxes_y::Int32)

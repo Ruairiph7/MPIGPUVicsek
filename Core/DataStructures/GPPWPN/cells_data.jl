@@ -26,7 +26,7 @@ end #function
 #    kernel will belong to a single cell, with the warps corresponding to neighbours.
 #    As Julia is column-major, we therefore want to have neighbours vary along columns
 #    for warps to read from contiguous memory.
-function initalise_cell_neighbours_gppwpn(cell_list_params::CellListParams)
+function initialise_cell_neighbours_gppwpn(cell_list_params::CellListParams)
     nx = cell_list_params.num_boxes_x
     ny = cell_list_params.num_boxes_y
     n = cell_list_params.num_boxes

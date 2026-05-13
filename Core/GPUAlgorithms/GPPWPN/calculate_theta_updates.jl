@@ -57,7 +57,7 @@ end #function
     # --------- Allocate local memory ---------
     F_sum_warps = @localmem Float32 9
     Fn_sum_warps = @localmem Float32 9
-    n_warps = @localmem Float32 9
+    n_warps = @localmem Int32 9
 
     # --------- Prepare variables ---------
     p_i = sorted_particles[i]

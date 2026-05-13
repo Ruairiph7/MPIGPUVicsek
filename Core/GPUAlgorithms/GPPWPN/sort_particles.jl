@@ -6,7 +6,7 @@ function sort_particles!(cells_data, particles, num_particles)
     total_num_threads = workgroup_size * num_workgroups
 
     kernel! = sort_particles_kernel!(CUDABackend(), workgroup_size)
-    kernel!(cells_data.sorted_particles cells_data.sorted_cells, particles, cells_data.perm, cells_data.cell_indices, num_particles; ndrange=total_num_threads)
+    kernel!(cells_data.sorted_particles, cells_data.sorted_cells, particles, cells_data.perm, cells_data.cell_indices, num_particles; ndrange=total_num_threads)
     KernelAbstractions.synchronize(CUDABackend())
 end #function
 

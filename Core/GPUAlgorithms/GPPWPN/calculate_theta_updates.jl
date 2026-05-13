@@ -19,6 +19,7 @@ function calculate_θ_updates_gppwpn!(θ_updates, cells_data, cell_list_params, 
             cells_data.cell_starts,
             cells_data.cell_ends,
             cells_data.cell_neighbours,
+            cells_data.perm,
             cell_list_params,
             min_cell_width,
             numerical_params.Lx,
@@ -38,6 +39,7 @@ end #function
     @Const(cell_starts),
     @Const(cell_ends),
     @Const(cell_neighbours),
+    @Const(perm),
     cell_list_params,
     min_cell_width,
     Lx, Ly,
@@ -60,7 +62,7 @@ end #function
     n_warps = @localmem Int32 9
 
     # --------- Prepare variables ---------
-    p_i = sorted_particles[i]
+    p_i = sorted_particles[i] # = particles[perm[i]]
     this_cell_idx = get_cell_ID(p_i.r, cell_list_params)
     nghbr_cell_idx = cell_neighbours[warp_idx+Int32(1), this_cell_idx]
 
@@ -164,7 +166,7 @@ end #function
             n += n_warps[lidx]
         end
 
-        θ_updates[i] = γ * F_sum * dt / n + γn * Fn_sum * dt
+        θ_updates[perm[i]] = γ * F_sum * dt / n + γn * Fn_sum * dt
     end
 
 end #function

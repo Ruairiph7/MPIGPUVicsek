@@ -18,7 +18,7 @@ function initialise_data_structures_gppwpn(cell_list_params::CellListParams, N)
     cell_starts = CuArray(zeros(Int32, cell_list_params.num_boxes)) #First index in sorted_particles for cell c
     cell_ends = CuArray(zeros(Int32, cell_list_params.num_boxes)) #Last index in sorted_particles for cell c (inclusive)
     cell_neighbours = initialise_cell_neighbours_gppwpn(cell_list_params)
-    return (; cell_indices, perm, sorted_particles, sorted_cells, cell_starts, cell_ends)
+    return (; cell_indices, perm, sorted_particles, sorted_cells, cell_starts, cell_ends, cell_neighbours)
 end #function
 
 # Get array to store neighbours of each cell, including itself

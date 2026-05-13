@@ -61,7 +61,7 @@ end #function
 
     # --------- Prepare variables ---------
     p_i = sorted_particles[i]
-    this_cell_idx = get_cell_ID(r_i, cell_list_params)
+    this_cell_idx = get_cell_ID(p_i.r, cell_list_params)
     nghbr_cell_idx = cell_neighbours[warp_idx+Int32(1), this_cell_idx]
 
     nghbr_cell_start = cell_starts[nghbr_cell_idx]
@@ -79,7 +79,8 @@ end #function
         for stride in Int32(1):num_strides
             if j <= nghbr_cell_end
                 p_j = sorted_particles[j]
-                Δx, Δy = p_i.r .- p_j.r
+                Δx = p_i.r[1] .- p_j.r[1]
+                Δy = p_i.r[2] .- p_j.r[2]
                 Δx > min_cell_width && (Δx -= Lx)
                 Δx < -min_cell_width && (Δx += Lx)
                 Δy > min_cell_width && (Δy -= Ly)
@@ -100,23 +101,23 @@ end #function
     end #if nghbr_cell_start
 
     # --------- Collect onto lane 0 ---------
-    F_sum_lane += CUDA.shfl_down_sync(0xffffffff, F_sum_lane, Int32(16))
-    F_sum_lane += CUDA.shfl_down_sync(0xffffffff, F_sum_lane, Int32(8))
-    F_sum_lane += CUDA.shfl_down_sync(0xffffffff, F_sum_lane, Int32(4))
-    F_sum_lane += CUDA.shfl_down_sync(0xffffffff, F_sum_lane, Int32(2))
-    F_sum_lane += CUDA.shfl_down_sync(0xffffffff, F_sum_lane, Int32(1))
+    F_sum_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), F_sum_lane, Int32(16))
+    F_sum_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), F_sum_lane, Int32(8))
+    F_sum_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), F_sum_lane, Int32(4))
+    F_sum_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), F_sum_lane, Int32(2))
+    F_sum_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), F_sum_lane, Int32(1))
 
-    Fn_sum_lane += CUDA.shfl_down_sync(0xffffffff, Fn_sum_lane, Int32(16))
-    Fn_sum_lane += CUDA.shfl_down_sync(0xffffffff, Fn_sum_lane, Int32(8))
-    Fn_sum_lane += CUDA.shfl_down_sync(0xffffffff, Fn_sum_lane, Int32(4))
-    Fn_sum_lane += CUDA.shfl_down_sync(0xffffffff, Fn_sum_lane, Int32(2))
-    Fn_sum_lane += CUDA.shfl_down_sync(0xffffffff, Fn_sum_lane, Int32(1))
+    Fn_sum_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), Fn_sum_lane, Int32(16))
+    Fn_sum_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), Fn_sum_lane, Int32(8))
+    Fn_sum_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), Fn_sum_lane, Int32(4))
+    Fn_sum_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), Fn_sum_lane, Int32(2))
+    Fn_sum_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), Fn_sum_lane, Int32(1))
 
-    n_lane += CUDA.shfl_down_sync(0xffffffff, n_lane, Int32(16))
-    n_lane += CUDA.shfl_down_sync(0xffffffff, n_lane, Int32(8))
-    n_lane += CUDA.shfl_down_sync(0xffffffff, n_lane, Int32(4))
-    n_lane += CUDA.shfl_down_sync(0xffffffff, n_lane, Int32(2))
-    n_lane += CUDA.shfl_down_sync(0xffffffff, n_lane, Int32(1))
+    n_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), n_lane, Int32(16))
+    n_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), n_lane, Int32(8))
+    n_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), n_lane, Int32(4))
+    n_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), n_lane, Int32(2))
+    n_lane += CUDA.shfl_down_sync(UInt32(0xffffffff), n_lane, Int32(1))
 
     if lane == Int32(0)
         F_sum_warps[warp_idx+Int32(1)] = F_sum_lane
@@ -132,20 +133,20 @@ end #function
         Fn_sum = Fn_sum_warps[lane+Int32(1)]
         n = n_warps[lane+Int32(1)]
 
-        F_sum += CUDA.shfl_down_sync(0x000001ff, F_sum, Int32(8))
-        F_sum += CUDA.shfl_down_sync(0x000001ff, F_sum, Int32(4))
-        F_sum += CUDA.shfl_down_sync(0x000001ff, F_sum, Int32(2))
-        F_sum += CUDA.shfl_down_sync(0x000001ff, F_sum, Int32(1))
+        F_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), F_sum, Int32(8))
+        F_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), F_sum, Int32(4))
+        F_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), F_sum, Int32(2))
+        F_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), F_sum, Int32(1))
 
-        Fn_sum += CUDA.shfl_down_sync(0x000001ff, Fn_sum, Int32(8))
-        Fn_sum += CUDA.shfl_down_sync(0x000001ff, Fn_sum, Int32(4))
-        Fn_sum += CUDA.shfl_down_sync(0x000001ff, Fn_sum, Int32(2))
-        Fn_sum += CUDA.shfl_down_sync(0x000001ff, Fn_sum, Int32(1))
+        Fn_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), Fn_sum, Int32(8))
+        Fn_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), Fn_sum, Int32(4))
+        Fn_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), Fn_sum, Int32(2))
+        Fn_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), Fn_sum, Int32(1))
 
-        n += CUDA.shfl_down_sync(0x000001ff, n, Int32(8))
-        n += CUDA.shfl_down_sync(0x000001ff, n, Int32(4))
-        n += CUDA.shfl_down_sync(0x000001ff, n, Int32(2))
-        n += CUDA.shfl_down_sync(0x000001ff, n, Int32(1))
+        n += CUDA.shfl_down_sync(UInt32(0x000001ff), n, Int32(8))
+        n += CUDA.shfl_down_sync(UInt32(0x000001ff), n, Int32(4))
+        n += CUDA.shfl_down_sync(UInt32(0x000001ff), n, Int32(2))
+        n += CUDA.shfl_down_sync(UInt32(0x000001ff), n, Int32(1))
 
         # --------- Store update ---------
         if lane == Int32(0)

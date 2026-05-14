@@ -19,6 +19,7 @@ function sort_particles_bpc!(cells_data, particles, num_particles)
         particles,
         num_particles;
         ndrange=total_num_threads)
+    KernelAbstractions.synchronize(CUDABackend())
 end #function
 
 @kernel function sort_particles_bpc_kernel!(
@@ -32,7 +33,7 @@ end #function
     I = Int32(@index(Global, Linear))
     stride = Int32(@ndrange()[1])
 
-    for i = I:stride:N
+    for i = I:stride:num_particles
         c = cell_indices[i]
         pos = CUDA.atomic_add!(pointer(cell_starts_scratch, c), Int32(1))
         sorted_particles[pos] = particles[i]

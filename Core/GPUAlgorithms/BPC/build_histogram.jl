@@ -20,7 +20,7 @@ function build_histogram!(cells_data, cell_list_params, particles, num_particles
     KernelAbstractions.synchronize(CUDABackend())
 end #function
 
-@kernel function histogram_kernel!(
+@kernel function build_histogram_kernel!(
     cell_counts,
     cell_indices,
     occupied_cells,
@@ -36,7 +36,7 @@ end #function
         c = get_cell_ID(particles[i].r, cell_list_params)
 
         cell_indices[i] = c
-        old_cell_count = CUDA.atomic_add!(pointer(cell_count, c), Int32(1))
+        old_cell_count = CUDA.atomic_add!(pointer(cell_counts, c), Int32(1))
 
         if old_cell_count == Int32(0)
             old_num_occupied = CUDA.atomic_add!(pointer(num_occupied, Int32(1)), Int32(1))

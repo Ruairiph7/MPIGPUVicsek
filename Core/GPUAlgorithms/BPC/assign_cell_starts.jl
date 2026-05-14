@@ -16,6 +16,7 @@ function assign_cell_starts!(cells_data, cell_list_params)
         cells_data.cell_starts_scratch,
         cell_list_params.num_boxes;
         ndrange=total_num_threads)
+    KernelAbstractions.synchronize(CUDABackend())
 end #function
 
 @kernel function assign_cell_starts_kernel!(

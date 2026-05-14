@@ -73,10 +73,10 @@ function run_simulation(N_total, max_steps;
     # get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max, time_step, steps_to_shrink_buffers, ArrayType)
 
     # initialise_data_structures(cell_list_params::CellListParams, N) = initialise_data_structures_gppwpn(cell_list_params, N)
-    # get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max)
+    # get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params)
 
     initialise_data_structures(cell_list_params::CellListParams, N) = CellList(cell_list_params, N)
-    get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_bpc!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max)
+    get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_bpc!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params)
 
     # ----- Prepare for MPI -----
     rank = MPI.Comm_rank(comm)

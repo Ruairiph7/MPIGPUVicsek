@@ -1,5 +1,5 @@
 # --------- Carry out cell lists algorithms ---------
-function get_updates_bpc!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max)
+function get_updates_bpc!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params)
 
     # --------- Create cell list data structures ---------    
 
@@ -15,6 +15,6 @@ function get_updates_bpc!(θ_updates, particles, cells_data, cell_list_params, n
 
     # --------- Calculate θ_updates ---------    
 
-    calculate_θ_updates_bpc!(θ_updates, cells_data, numerical_params, R_max)
+    calculate_θ_updates_bpc!(θ_updates, cells_data, numerical_params)
 
 end #function

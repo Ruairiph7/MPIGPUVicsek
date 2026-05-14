@@ -34,7 +34,6 @@ end #function
     num_cells_y,
     cell_size_x,
     cell_size_y,
-    particles,
     @Const(particles),
     num_particles)
 

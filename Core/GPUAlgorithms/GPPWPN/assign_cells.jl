@@ -18,11 +18,11 @@ end #function
 
 @kernel function assign_cells_gppwpn_kernel!(
     cell_indices,
-    @Const(particles),
     num_cells_x,
     num_cells_y,
     cell_size_x,
     cell_size_y,
+    @Const(particles),
     num_particles)
     I = Int32(@index(Global, Linear))
     stride = Int32(@ndrange()[1])

@@ -1,11 +1,11 @@
 # Carry out cell lists algorithms
 #---------------------------------------------#
-function get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
+function get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max)
 
     # --------- Create cell list data structures ---------    
 
     #1) Assign particles to cells, store in cell_indices
-    assign_cells_gppwpn!(cells_data, particles, cell_list_params, num_particles)
+    assign_cells_gppwpn!(cells_data, cell_list_params, particles, num_particles)
 
     #2) Reset perm buffer to the identity
     reset_perm!(cells_data, num_particles)
@@ -21,7 +21,7 @@ function get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params
 
     # --------- Calculate θ_updates ---------    
 
-    calculate_θ_updates_gppwpn!(θ_updates, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
+    calculate_θ_updates_gppwpn!(θ_updates, cells_data, cell_list_params, num_particles, numerical_params, R_max)
 
 end #function
 #---------------------------------------------#

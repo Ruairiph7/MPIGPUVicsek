@@ -8,7 +8,7 @@
 #   - workgroup_size = tile_size = 128, so all threads always participate in tile loading
 #   - Shared memory usage of tile_size * sizeof(Particle) = 128 * 16 = 2 KB per workgroup
 
-function calculate_θ_updates_bpc!(θ_updates, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
+function calculate_θ_updates_bpc!(θ_updates, cells_data, numerical_params, R_max)
 
     # Need num_occupied on the CPU to launch the correct number of workgroups
     num_occupied_cpu = Array(cells_data.num_occupied)[1]
@@ -26,7 +26,7 @@ function calculate_θ_updates_bpc!(θ_updates, cells_data, cell_list_params, num
         cells_data.cell_counts,
         cells_data.cell_neighbours,
         cells_data.occupied_cells,
-        min_cell_width,
+        R_max,
         numerical_params.Lx,
         numerical_params.Ly,
         numerical_params.R²,
@@ -46,7 +46,7 @@ end #function
     @Const(cell_counts),
     @Const(cell_neighbours),
     @Const(occupied_cells),
-    min_cell_width,
+    R_max,
     Lx, Ly,
     R², Rn²,
     γ, γn,

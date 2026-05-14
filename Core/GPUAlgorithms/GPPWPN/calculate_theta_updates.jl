@@ -9,27 +9,30 @@
 #   - All warps are synchronized, then the first 9 lanes of the first warp collect
 #   the sums, before the first lane writes to θ_updates for that particle.
 #
-function calculate_θ_updates_gppwpn!(θ_updates, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
+function calculate_θ_updates_gppwpn!(θ_updates, cells_data, cell_list_params, num_particles, numerical_params, R_max)
     workgroup_size = 288
     num_workgroups = num_particles
     total_num_threads = workgroup_size * num_workgroups
     kernel! = calculate_θ_updates_gppwpn_kernel!(CUDABackend(), workgroup_size)
     kernel!(θ_updates,
-            cells_data.sorted_particles,
-            cells_data.cell_starts,
-            cells_data.cell_ends,
-            cells_data.cell_neighbours,
-            cells_data.perm,
-            cell_list_params,
-            min_cell_width,
-            numerical_params.Lx,
-            numerical_params.Ly,
-            numerical_params.R²,
-            numerical_params.Rn²,
-            numerical_params.γ,
-            numerical_params.γn,
-            numerical_params.dt;
-            ndrange=total_num_threads)
+        cells_data.sorted_particles,
+        cells_data.cell_starts,
+        cells_data.cell_ends,
+        cells_data.cell_neighbours,
+        cells_data.perm,
+        cell_list_params.num_cells_x,
+        cell_list_params.num_cells_y,
+        cell_list_params.cell_size_x,
+        cell_list_params.cell_size_y,
+        R_max,
+        numerical_params.Lx,
+        numerical_params.Ly,
+        numerical_params.R²,
+        numerical_params.Rn²,
+        numerical_params.γ,
+        numerical_params.γn,
+        numerical_params.dt;
+        ndrange=total_num_threads)
     KernelAbstractions.synchronize(CUDABackend())
 end #function
 
@@ -40,8 +43,11 @@ end #function
     @Const(cell_ends),
     @Const(cell_neighbours),
     @Const(perm),
-    cell_list_params,
-    min_cell_width,
+    num_cells_x,
+    num_cells_y,
+    cell_size_x,
+    cell_size_y,
+    R_max,
     Lx, Ly,
     R², Rn²,
     γ, γn,
@@ -63,7 +69,7 @@ end #function
 
     # --------- Prepare variables ---------
     p_i = sorted_particles[i] # = particles[perm[i]]
-    this_cell_idx = get_cell_ID(p_i.r, cell_list_params)
+    this_cell_idx = get_cell_ID(p_i.r, num_cells_x, num_cells_y, cell_size_x, cell_size_y)
     nghbr_cell_idx = cell_neighbours[warp_idx+Int32(1), this_cell_idx]
 
     nghbr_cell_start = cell_starts[nghbr_cell_idx]
@@ -128,33 +134,7 @@ end #function
 
     @synchronize()
 
-    # # --------- Collect onto warp 0, lane 0 ---------
-    # if warp_idx == Int32(0) && lane < Int32(9)
-    #     F_sum = F_sum_warps[lane+Int32(1)]
-    #     Fn_sum = Fn_sum_warps[lane+Int32(1)]
-    #     n = n_warps[lane+Int32(1)]
-    #
-    #     F_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), F_sum, Int32(8))
-    #     F_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), F_sum, Int32(4))
-    #     F_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), F_sum, Int32(2))
-    #     F_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), F_sum, Int32(1))
-    #
-    #     Fn_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), Fn_sum, Int32(8))
-    #     Fn_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), Fn_sum, Int32(4))
-    #     Fn_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), Fn_sum, Int32(2))
-    #     Fn_sum += CUDA.shfl_down_sync(UInt32(0x000001ff), Fn_sum, Int32(1))
-    #
-    #     n += CUDA.shfl_down_sync(UInt32(0x000001ff), n, Int32(8))
-    #     n += CUDA.shfl_down_sync(UInt32(0x000001ff), n, Int32(4))
-    #     n += CUDA.shfl_down_sync(UInt32(0x000001ff), n, Int32(2))
-    #     n += CUDA.shfl_down_sync(UInt32(0x000001ff), n, Int32(1))
-    #
-    #     # --------- Store update ---------
-    #     if lane == Int32(0)
-    #         θ_updates[i] = γ * F_sum * dt / n + γn * Fn_sum * dt
-    #     end #if lane
-    # end #if warp_idx
-
+    # --------- Collect onto warp 0, lane 0 ---------
     if warp_idx == Int32(0) && lane == Int32(0)
         F_sum = 0.0f0
         Fn_sum = 0.0f0

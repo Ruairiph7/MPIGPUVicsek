@@ -32,13 +32,14 @@ function run_simulation(N_total, max_steps;
     file_name_addon::String="",
     markersize=0.5,
     steps_to_log=maximum((max_steps ÷ 10, 1)),
-    algorithm::Symbol=:dynamic_cell_list
+    algorithm::Symbol=:bpc
 )
 
     #Store numerical parameters
     R² = R^2
     Rn² = Rn^2
-    numerical_params = (; dt, R, Rn, R², Rn², γ, γn, λ, Lx, Ly, v)
+    R_max = maximum([R, Rn])
+    numerical_params = (; dt, R, Rn, R², Rn², R_max, γ, γn, λ, Lx, Ly, v)
 
     #Store output parameters
     output_params = (; save_OPs, save_plots, save_coords, steps_to_save_OPs, steps_to_save_plots, steps_to_save_coords, steps_to_new_OP_file, file_name_addon, markersize)
@@ -68,18 +69,12 @@ function run_simulation(N_total, max_steps;
     #     get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
     # end #if algorithm
 
-    # initialise_rand_bufs(N; ArrayType=CuArray) = initialise_rand_bufs_dcl(N; ArrayType=ArrayType)
-    # initialise_θ_updates(N; ArrayType=CuArray) = initialise_θ_updates_dcl(N; ArrayType=ArrayType)
     # initialise_data_structures(params::CellListParams, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType) = initialise_data_structures_dcl(params, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType)
     # get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType)
 
-    # initialise_rand_bufs(N; ArrayType=CuArray) = initialise_rand_bufs_gppwpn(N; ArrayType=ArrayType)
-    # initialise_θ_updates(N; ArrayType=CuArray) = initialise_θ_updates_gppwpn(N; ArrayType=ArrayType)
     # initialise_data_structures(cell_list_params::CellListParams, N) = initialise_data_structures_gppwpn(cell_list_params, N)
     # get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
 
-    initialise_rand_bufs(N; ArrayType=CuArray) = initialise_rand_bufs_bpc(N; ArrayType=ArrayType)
-    initialise_θ_updates(N; ArrayType=CuArray) = initialise_θ_updates_bpc(N; ArrayType=ArrayType)
     initialise_data_structures(cell_list_params::CellListParams, N) = CellList(cell_list_params, N)
     get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_bpc!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
 
@@ -105,12 +100,11 @@ function run_simulation(N_total, max_steps;
 
     # Characterise local domain
     Lx_local = Lx / nprocs
-    x_min = rank * Lx_local
-    x_max = (rank + 1) * Lx_local
+    x_min_local = rank * Lx_local
+    x_max_local = (rank + 1) * Lx_local
 
     #Initialise cell list parameters
-    min_cell_width = maximum([R, Rn])
-    cell_list_params = CellListParams(x_min - min_cell_width, Lx_local + 2 * min_cell_width, Ly, min_cell_width)
+    cell_list_params = CellListParams(x_min_local, Lx_local, Ly, R_max, SINGLE_RANK=SINGLE_RANK)
 
     #alg_data = (;)
     #if algorithm == :dynamic_cell_list
@@ -120,7 +114,7 @@ function run_simulation(N_total, max_steps;
 
     #    #Set max_num_occupied_cells
     #    if isnothing(max_num_occupied_cells)
-    #        max_num_occupied_cells = ceil(Int32, 4 * cell_list_params.num_boxes / 7)
+    #        max_num_occupied_cells = ceil(Int32, 4 * cell_list_params.num_cells / 7)
     #        rank == 0 && @show max_num_occupied_cells
     #    end #if isnothing()
 
@@ -136,7 +130,7 @@ function run_simulation(N_total, max_steps;
     #    end #if (rank == 0)
     #    #Set max_num_occupied_cells
     #    if isnothing(max_num_occupied_cells)
-    #        max_num_occupied_cells = ceil(Int32, 4 * cell_list_params.num_boxes / 7)
+    #        max_num_occupied_cells = ceil(Int32, 4 * cell_list_params.num_cells / 7)
     #        rank == 0 && @show max_num_occupied_cells
     #    end #if isnothing()
     #    #Initialise dynamic cell lists data structures
@@ -155,10 +149,12 @@ function run_simulation(N_total, max_steps;
 
     #Set max_sendrecv_particles - i.e. maximum ghosts/migrants in a given direction
     if isnothing(max_sendrecv_particles)
-        max_sendrecv_particles = ceil(Int32, max_particles_in_cell * cell_list_params.num_boxes_y)
+        max_sendrecv_particles = ceil(Int32, max_particles_in_cell * cell_list_params.num_cells_y)
         rank == 0 && @show max_sendrecv_particles
     end #if isnothing()
     sendrecv_buf_length = 4 * max_sendrecv_particles #(Buffers are serialised)
+    @warn "max_sendrecv_particles could cause issues ---investigate."
+    #WARN: May choose to remove max_particles_in_cell as an argument, so max_sendrecv_particles will need to be set differently. Check whether this can cause out of bounds errors (previously max_particles_in_cell would have been exceeded first), and find how to solve.
 
     #Initialse buffers to track ghost and migrant particles
     ghost_bufs = GhostBuffers(max_sendrecv_particles)
@@ -168,7 +164,7 @@ function run_simulation(N_total, max_steps;
     sendrecv_bufs = SendRecvBuffers(sendrecv_buf_length)
 
     #Initialise array to store particles, the first num_local_particles entries corresponding to those in our local domain
-    particles, num_local_particles = initialise_particles(max_particles_per_rank, x_min, x_max, N_total, Lx, Ly, input_files, rank, comm)
+    particles, num_local_particles = initialise_particles(max_particles_per_rank, x_min_local, x_max_local, N_total, Lx, Ly, input_files, rank, comm)
 
     #Get a view to local_particles from the larger array
     local_particles = view(particles, 1:num_local_particles)
@@ -208,7 +204,7 @@ function run_simulation(N_total, max_steps;
         #---------------------------------------------#
 
         #Exchange ghosts serialized into buffers
-        recv_left_buf, recv_right_buf = exchange_ghosts!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, min_cell_width, ghost_bufs, SINGLE_RANK=SINGLE_RANK)
+        recv_left_buf, recv_right_buf = exchange_ghosts!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min_local, x_max_local, R_max, ghost_bufs, SINGLE_RANK=SINGLE_RANK)
 
         #Check if we need to raise max_particles_per_rank (locally on just this rank)
         n_left = length(recv_left_buf) ÷ 4
@@ -254,7 +250,7 @@ function run_simulation(N_total, max_steps;
 
         if num_local_particles != 0
 
-            get_updates!(θ_updates, view(particles, 1:extended_num_local_particles), alg_data, cell_list_params, extended_num_local_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType)
+            get_updates!(θ_updates, view(particles, 1:extended_num_local_particles), alg_data, cell_list_params, extended_num_local_particles, numerical_params, R_max, time_step, steps_to_shrink_buffers, ArrayType)
 
             #Update local particles only
             update_particles!(local_particles, θ_updates, numerical_params, rand_bufs)

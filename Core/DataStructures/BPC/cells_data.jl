@@ -1,15 +1,3 @@
-# --------- Initialise data structures ---------
-
-function initialise_θ_updates_bpc(N; ArrayType=CuArray)
-    return ArrayType(zeros(Float32, N))
-end #function
-
-function initialise_rand_bufs_bpc(N; ArrayType=CuArray)
-    rand1 = ArrayType(zeros(Float32, N))
-    rand2 = ArrayType(zeros(Float32, N))
-    return (; rand1, rand2)
-end #function
-
 # --------- Initialise cell list data structures ---------
 
 struct CellList
@@ -18,13 +6,13 @@ struct CellList
     sorted_particles::CuVector{Particle} #Particles sorted by cell index
     perm::CuVector{Int32} #Permutation from sorted particle indices to absolute ones
 
-    # Per-cell (length num_boxes)
+    # Per-cell (length num_cells)
     cell_counts::CuVector{Int32} #Number of particles in each cell
     cell_starts::CuVector{Int32} #First index in sorted particles for cell c
     cell_starts_scratch::CuVector{Int32} #Copy of cell_starts, used during sorting
 
     # Occupied cell tracking
-    occupied_cells::CuVector{Int32} #Indices of non-empty cells; length == num_boxes
+    occupied_cells::CuVector{Int32} #Indices of non-empty cells; length == num_cells
     num_occupied::CuVector{Int32} #Scalar counter; length == 1
 
     # Initialised once at startup, never changes
@@ -34,10 +22,10 @@ CellList(cell_list_params::CellListParams, N) = CellList(
     CUDA.zeros(Int32, N),
     CuArray(Vector{Particle}(undef, N)),
     CUDA.zeros(Int32, N),
-    CUDA.zeros(Int32, cell_list_params.num_boxes),
-    CUDA.zeros(Int32, cell_list_params.num_boxes),
-    CUDA.zeros(Int32, cell_list_params.num_boxes),
-    CUDA.zeros(Int32, cell_list_params.num_boxes),
+    CUDA.zeros(Int32, cell_list_params.num_cells),
+    CUDA.zeros(Int32, cell_list_params.num_cells),
+    CUDA.zeros(Int32, cell_list_params.num_cells),
+    CUDA.zeros(Int32, cell_list_params.num_cells),
     CUDA.zeros(Int32, 1),
     initialise_cell_neighbours_bpc(cell_list_params)
 )
@@ -48,9 +36,9 @@ CellList(cell_list_params::CellListParams, N) = CellList(
 #    As Julia is column-major, we therefore want to have neighbours vary along columns
 #    for warps to read from contiguous memory.
 function initialise_cell_neighbours_bpc(cell_list_params::CellListParams)
-    nx = cell_list_params.num_boxes_x
-    ny = cell_list_params.num_boxes_y
-    n = cell_list_params.num_boxes
+    nx = cell_list_params.num_cells_x
+    ny = cell_list_params.num_cells_y
+    n = cell_list_params.num_cells
 
     cell_neighbours = zeros(Int32, 9, n)
     for yidx in Int32(1):ny

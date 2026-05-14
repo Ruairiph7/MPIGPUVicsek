@@ -1,4 +1,5 @@
 using StaticArrays
+using CUDA
 
 # --------- Data structures ---------
 
@@ -7,6 +8,19 @@ struct Particle
     θ::Float32
     uid::Int32 #"Unique id"
 end
+
+# --------- Initialise structures for particle updates ---------
+
+function initialise_θ_updates(N; ArrayType=CuArray)
+    return ArrayType(zeros(Float32, N))
+end #function
+
+function initialise_rand_bufs(N; ArrayType=CuArray)
+    rand1 = ArrayType(zeros(Float32, N))
+    rand2 = ArrayType(zeros(Float32, N))
+    return (; rand1, rand2)
+end #function
+
 
 # --------- Initialise particles ---------
 

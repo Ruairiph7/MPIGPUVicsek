@@ -30,7 +30,7 @@ end #function
 # --------- Cell List Functions ---------
 
 #Assume particle is inside cell list domain (so ghosts must be correctly wrapped already)
-@inline function get_cell_ID(r::SVector{2,Float32}, num_cells_x::Int32, num_cells_y::Int32, cell_size_x::Int32, cell_size_y::Int32)
+@inline function get_cell_ID(r, num_cells_x, num_cells_y, cell_size_x, cell_size_y)
     x_idx = min(floor(Int32, r[1] / cell_size_x), num_cells_x - Int32(1))
     y_idx = min(floor(Int32, r[2] / cell_size_y), num_cells_y - Int32(1))
     return Int32(1) + x_idx + num_cells_x * y_idx

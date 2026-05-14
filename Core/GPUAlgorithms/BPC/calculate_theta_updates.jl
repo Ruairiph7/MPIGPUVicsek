@@ -71,7 +71,7 @@ end #function
         p_offset = batch_offset + local_tidx - Int32(1)
         valid = p_offset < cell_count
         p_idx = cell_start + p_offset
-        p_i = sorted_particles[p_idx]
+        p_i = valid ? sorted_particles[p_idx] : Particle(SVector{2,Float32}([0.0, 0.0]), 0.0, Int32(0))
 
         # Load this thread's particle position and angle
         # (will only read later if valid so safe to load unconditionally)
@@ -96,7 +96,7 @@ end #function
                 while tile_offset < nghbr_count
 
                     #Fix tile size to 128, or number of remaining particles if < 128
-                    this_tile_size = min(128, nghbr_count - tile_offset)
+                    this_tile_size = min(Int32(128), nghbr_count - tile_offset)
 
                     if local_tidx <= this_tile_size
                         shared_tile[local_tidx] = sorted_particles[
@@ -127,7 +127,7 @@ end #function
                     end #if valid
                     @synchronize   #Ensure all threads are done before the next load
 
-                    tile_offset += 128
+                    tile_offset += Int32(128)
                 end #while tile_offset
             end #if nghbr_count
         end #for nghbr
@@ -139,7 +139,7 @@ end #function
             θ_updates[perm[p_idx]] = γ * F_sum_local * dt / n_local + γn * Fn_sum_local * dt
         end #if
 
-        batch_offset += 128
+        batch_offset += Int32(128)
     end #while batch_offset
 end #function
 

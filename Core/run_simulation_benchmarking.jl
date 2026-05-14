@@ -52,8 +52,8 @@ function run_simulation(N_total, max_steps;
     end #if
 
     #Check algorithm to be used is valid
-    if algorithm ∉ (:dynamic_cell_list, :gppwpn)
-        error("Only accepted algorithms: ':dynamic_cell_list' or ':gppwpn'")
+    if algorithm ∉ (:dynamic_cell_list, :gppwpn, :bpc)
+        error("Only accepted algorithms: ':dynamic_cell_list', ':gppwpn' or ':bpc'")
     end #if
 
     # if algorithm == :dynamic_cell_list
@@ -67,11 +67,21 @@ function run_simulation(N_total, max_steps;
     #     initialise_data_structures(cell_list_params::CellListParams, N) = initialise_data_structures_gppwpn(cell_list_params, N)
     #     get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
     # end #if algorithm
-    
-    initialise_rand_bufs(N; ArrayType=CuArray) = initialise_rand_bufs_gppwpn(N; ArrayType=ArrayType)
-    initialise_θ_updates(N; ArrayType=CuArray) = initialise_θ_updates_gppwpn(N; ArrayType=ArrayType)
-    initialise_data_structures(cell_list_params::CellListParams, N) = initialise_data_structures_gppwpn(cell_list_params, N)
-    get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
+
+    # initialise_rand_bufs(N; ArrayType=CuArray) = initialise_rand_bufs_dcl(N; ArrayType=ArrayType)
+    # initialise_θ_updates(N; ArrayType=CuArray) = initialise_θ_updates_dcl(N; ArrayType=ArrayType)
+    # initialise_data_structures(params::CellListParams, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType) = initialise_data_structures_dcl(params, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType)
+    # get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType)
+
+    # initialise_rand_bufs(N; ArrayType=CuArray) = initialise_rand_bufs_gppwpn(N; ArrayType=ArrayType)
+    # initialise_θ_updates(N; ArrayType=CuArray) = initialise_θ_updates_gppwpn(N; ArrayType=ArrayType)
+    # initialise_data_structures(cell_list_params::CellListParams, N) = initialise_data_structures_gppwpn(cell_list_params, N)
+    # get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
+
+    initialise_rand_bufs(N; ArrayType=CuArray) = initialise_rand_bufs_bpc(N; ArrayType=ArrayType)
+    initialise_θ_updates(N; ArrayType=CuArray) = initialise_θ_updates_bpc(N; ArrayType=ArrayType)
+    initialise_data_structures(cell_list_params::CellListParams, N) = CellList(cell_list_params, N)
+    get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_bpc!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
 
     # ----- Prepare for MPI -----
     rank = MPI.Comm_rank(comm)
@@ -120,8 +130,22 @@ function run_simulation(N_total, max_steps;
     #elseif algorithm == :gppwpn
     #    alg_data = initialise_data_structures_gppwpn(cell_list_params, max_particles_per_rank)
     #end #if algorithm
-    alg_data = initialise_data_structures_gppwpn(cell_list_params, max_particles_per_rank)
 
+    #    if rank == 0
+    #        @warn "HAVE calculate_θ_updates workgroup_size AND max_particles_in_cell HARD CODED AT 1024"
+    #    end #if (rank == 0)
+    #    #Set max_num_occupied_cells
+    #    if isnothing(max_num_occupied_cells)
+    #        max_num_occupied_cells = ceil(Int32, 4 * cell_list_params.num_boxes / 7)
+    #        rank == 0 && @show max_num_occupied_cells
+    #    end #if isnothing()
+    #    #Initialise dynamic cell lists data structures
+    #    num_occupied_cells = ArrayType([Int32(0)])
+    #    alg_data = initialise_data_structures(cell_list_params, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType)
+
+    # alg_data = initialise_data_structures_gppwpn(cell_list_params, max_particles_per_rank)
+
+    alg_data = CellList(cell_list_params, max_particles_per_rank)
 
     #Set max_particles_per_rank
     if isnothing(max_particles_per_rank)
@@ -214,8 +238,9 @@ function run_simulation(N_total, max_steps;
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
             rand_bufs = initialise_rand_bufs(max_particles_per_rank) #Reinitialse rand_bufs
 
-            #If we're doing the gppwpn algorithm, we need to reinitialise alg_data
+            #If we're doing the gppwpn or bpc algorithms, we need to reinitialise alg_data
             algorithm == :gppwpn && (alg_data = initialise_data_structures_gppwpn(cell_list_params, max_particles_per_rank))
+            algorithm == :bpc && (alg_data = CellList(cell_list_params, max_particles_per_rank))
 
             #Else: try to lower maximum every steps_to_shrink_buffers steps
         elseif time_step % steps_to_shrink_buffers == 0 && max_particles_per_rank > 1.7 * extended_num_local_particles
@@ -229,8 +254,9 @@ function run_simulation(N_total, max_steps;
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
             rand_bufs = initialise_rand_bufs(max_particles_per_rank) #Reinitialse rand_bufs
 
-            #If we're doing the gppwpn algorithm, we need to reinitialise alg_data
+            #If we're doing the gppwpn or bpc algorithms, we need to reinitialise alg_data
             algorithm == :gppwpn && (alg_data = initialise_data_structures_gppwpn(cell_list_params, max_particles_per_rank))
+            algorithm == :bpc && (alg_data = CellList(cell_list_params, max_particles_per_rank))
 
         end #if
 
@@ -267,8 +293,9 @@ function run_simulation(N_total, max_steps;
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
             rand_bufs = initialise_rand_bufs(max_particles_per_rank) #Reinitialse rand_bufs
 
-            #If we're doing the gppwpn algorithm, we need to reinitialise alg_data
+            #If we're doing the gppwpn or bpc algorithms, we need to reinitialise alg_data
             algorithm == :gppwpn && (alg_data = initialise_data_structures_gppwpn(cell_list_params, max_particles_per_rank))
+            algorithm == :bpc && (alg_data = CellList(cell_list_params, max_particles_per_rank))
         end #if
 
         #Load stayers into the beginning of particles
@@ -300,7 +327,7 @@ function run_simulation(N_total, max_steps;
         #---------------------------------------------#
 
         KernelAbstractions.synchronize(backend)
-
+ 
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
         #NOTE: For benchmarking:
         MPI.Barrier(comm)
@@ -321,6 +348,7 @@ function run_simulation(N_total, max_steps;
     ##NOTE: For benchmarking:
     writedlm("times_rank"*string(rank)*"_"*file_name_addon*".txt",local_times)
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+
 
     MPI.Barrier(comm)
     return nothing

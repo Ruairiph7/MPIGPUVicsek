@@ -2,21 +2,21 @@
 # Packing particles → Float32 buffer on GPU
 ###############################################
 
-@kernel function serialize_kernel!(out, @Const(particles), size)
+@kernel function serialize_kernel!(out, @Const(particles), size, x_offset)
     I = @index(Global)
-    stride = 256*256
+    stride = 256 * 256
 
     for i = I:stride:size
         p = particles[i]
         base = 4 * (i - 1)
-        out[base+1] = p.r[1]
+        out[base+1] = p.r[1] + x_offset
         out[base+2] = p.r[2]
         out[base+3] = p.θ
         out[base+4] = Float32(p.uid)
     end #for i
 end
 
-function pack_particles_to_f32!(bufs::SendRecvBuffers, lefts::CuArray{Particle}, rights::CuArray{Particle})
+function pack_particles_to_f32!(bufs::SendRecvBuffers, lefts::CuArray{Particle}, rights::CuArray{Particle}; GHOST_FLAG::Bool=false, Lx::Int32=Int32(0), rank::Int=0, nprocs::Int=0)
     n_left = length(lefts)
     n_right = length(rights)
     left_count = Ref{Int32}(4 * n_left)
@@ -28,12 +28,15 @@ function pack_particles_to_f32!(bufs::SendRecvBuffers, lefts::CuArray{Particle},
     total_num_threads = workgroup_size * num_workgroups
     kernel! = serialize_kernel!(CUDABackend())
 
+    x_offset = Int32(0)
     if n_left != 0
-        kernel!(view(bufs.send_left_buf, 1:4*n_left), lefts, n_left; ndrange=total_num_threads)
+        GHOST_FLAG && (rank == 0) && (x_offset = Lx)
+        kernel!(view(bufs.send_left_buf, 1:4*n_left), lefts, n_left, x_offset; ndrange=total_num_threads)
         KernelAbstractions.synchronize(CUDABackend())
     end #if (n_left != 0)
     if n_right != 0
-        kernel!(view(bufs.send_right_buf, 1:4*n_right), rights, n_right; ndrange=total_num_threads)
+        GHOST_FLAG && (rank == nprocs - 1) && (x_offset = -Lx)
+        kernel!(view(bufs.send_right_buf, 1:4*n_right), rights, n_right, x_offset; ndrange=total_num_threads)
         KernelAbstractions.synchronize(CUDABackend())
     end #if (n_right != 0)
 
@@ -46,7 +49,7 @@ end
 
 @kernel function deserialize_kernel!(out, @Const(buf), size)
     I = @index(Global)
-    stride = 256*256
+    stride = 256 * 256
 
     for i = I:stride:size
         base = 4 * (i - 1)

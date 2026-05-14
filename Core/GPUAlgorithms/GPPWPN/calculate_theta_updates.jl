@@ -9,7 +9,7 @@
 #   - All warps are synchronized, then the first 9 lanes of the first warp collect
 #   the sums, before the first lane writes to θ_updates for that particle.
 #
-function calculate_θ_updates_gppwpn!(θ_updates, cells_data, cell_list_params, num_particles, numerical_params, R_max)
+function calculate_θ_updates_gppwpn!(θ_updates, cells_data, cell_list_params, num_particles, numerical_params)
     workgroup_size = 288
     num_workgroups = num_particles
     total_num_threads = workgroup_size * num_workgroups
@@ -24,7 +24,6 @@ function calculate_θ_updates_gppwpn!(θ_updates, cells_data, cell_list_params, 
         cell_list_params.num_cells_y,
         cell_list_params.cell_size_x,
         cell_list_params.cell_size_y,
-        R_max,
         numerical_params.Lx,
         numerical_params.Ly,
         numerical_params.R²,
@@ -47,7 +46,6 @@ end #function
     num_cells_y,
     cell_size_x,
     cell_size_y,
-    R_max,
     Lx, Ly,
     R², Rn²,
     γ, γn,
@@ -88,11 +86,9 @@ end #function
             if j <= nghbr_cell_end
                 p_j = sorted_particles[j]
                 Δx = p_i.r[1] - p_j.r[1]
+                Δx -= Lx * round(Int32, Δx / Lx)
                 Δy = p_i.r[2] - p_j.r[2]
-                Δx > min_cell_width && (Δx -= Lx)
-                Δx < -min_cell_width && (Δx += Lx)
-                Δy > min_cell_width && (Δy -= Ly)
-                Δy < -min_cell_width && (Δy += Ly)
+                Δy -= Ly * round(Int32, Δy / Ly)
                 if Δx^2 + Δy^2 < R²
                     θ_ij = p_j.θ - p_i.θ
                     F_sum_lane += F(θ_ij, R²)

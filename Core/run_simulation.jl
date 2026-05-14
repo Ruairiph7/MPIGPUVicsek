@@ -70,13 +70,13 @@ function run_simulation(N_total, max_steps;
     # end #if algorithm
 
     # initialise_data_structures(params::CellListParams, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType) = initialise_data_structures_dcl(params, max_num_occupied_cells, max_particles_in_cell, num_occupied_cells, ArrayType)
-    # get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType)
+    # get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_dcl!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max, time_step, steps_to_shrink_buffers, ArrayType)
 
     # initialise_data_structures(cell_list_params::CellListParams, N) = initialise_data_structures_gppwpn(cell_list_params, N)
-    # get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
+    # get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_gppwpn!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max)
 
     initialise_data_structures(cell_list_params::CellListParams, N) = CellList(cell_list_params, N)
-    get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_bpc!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, min_cell_width)
+    get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max, time_step, steps_to_shrink_buffers, ArrayType) = get_updates_bpc!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params, R_max)
 
     # ----- Prepare for MPI -----
     rank = MPI.Comm_rank(comm)
@@ -204,7 +204,7 @@ function run_simulation(N_total, max_steps;
         #---------------------------------------------#
 
         #Exchange ghosts serialized into buffers
-        recv_left_buf, recv_right_buf = exchange_ghosts!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min_local, x_max_local, R_max, ghost_bufs, SINGLE_RANK=SINGLE_RANK)
+        recv_left_buf, recv_right_buf = exchange_ghosts!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min_local, x_max_local, Lx, R_max, ghost_bufs, SINGLE_RANK=SINGLE_RANK)
 
         #Check if we need to raise max_particles_per_rank (locally on just this rank)
         n_left = length(recv_left_buf) ÷ 4
@@ -263,7 +263,7 @@ function run_simulation(N_total, max_steps;
         #Migrate particles that have moved domains
         #---------------------------------------------#
         #Find stayers; exchange migrants serialized into buffers
-        stayers, recv_left_buf, recv_right_buf = exchange_migrants!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min, x_max, min_cell_width, migrant_bufs, SINGLE_RANK=SINGLE_RANK)
+        stayers, recv_left_buf, recv_right_buf = exchange_migrants!(sendrecv_bufs, local_particles, comm, rank, nprocs, x_min_local, x_max_local, R_max, migrant_bufs, SINGLE_RANK=SINGLE_RANK)
 
         #Check if we need to raise max_particles_per_rank (locally on just this rank)
         n_stay = length(stayers)

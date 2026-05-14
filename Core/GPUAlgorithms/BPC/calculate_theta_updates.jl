@@ -8,7 +8,7 @@
 #   - workgroup_size = tile_size = 128, so all threads always participate in tile loading
 #   - Shared memory usage of tile_size * sizeof(Particle) = 128 * 16 = 2 KB per workgroup
 
-function calculate_θ_updates_bpc!(θ_updates, cells_data, numerical_params, R_max)
+function calculate_θ_updates_bpc!(θ_updates, cells_data, numerical_params)
 
     # Need num_occupied on the CPU to launch the correct number of workgroups
     num_occupied_cpu = Array(cells_data.num_occupied)[1]
@@ -26,7 +26,6 @@ function calculate_θ_updates_bpc!(θ_updates, cells_data, numerical_params, R_m
         cells_data.cell_counts,
         cells_data.cell_neighbours,
         cells_data.occupied_cells,
-        R_max,
         numerical_params.Lx,
         numerical_params.Ly,
         numerical_params.R²,
@@ -46,7 +45,6 @@ end #function
     @Const(cell_counts),
     @Const(cell_neighbours),
     @Const(occupied_cells),
-    R_max,
     Lx, Ly,
     R², Rn²,
     γ, γn,
@@ -109,11 +107,9 @@ end #function
                         for j in Int32(1):this_tile_size
                             p_j = shared_tile[j]
                             Δx = p_i.r[1] - p_j.r[1]
+                            Δx -= Lx * round(Int32, Δx / Lx)
                             Δy = p_i.r[2] - p_j.r[2]
-                            Δx > min_cell_width && (Δx -= Lx)
-                            Δx < -min_cell_width && (Δx += Lx)
-                            Δy > min_cell_width && (Δy -= Ly)
-                            Δy < -min_cell_width && (Δy += Ly)
+                            Δy -= Ly * round(Int32, Δy / Ly)
                             if Δx^2 + Δy^2 < R²
                                 θ_ij = p_j.θ - p_i.θ
                                 F_sum_local += F(θ_ij, R²)

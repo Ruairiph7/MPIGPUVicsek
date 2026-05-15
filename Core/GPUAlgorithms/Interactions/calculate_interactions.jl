@@ -77,7 +77,7 @@ end #function
         p_offset = batch_offset + local_tidx - Int32(1)
         valid = p_offset < cell_count
         p_idx = cell_start + p_offset
-        p_i = valid ? sorted_particles[p_idx] : Particle(@SVector([0.0, 0.0]), 0.0, Int32(0))
+        p_i = valid ? sorted_particles[p_idx] : Particle(@SVector([0.0f0, 0.0f0]), 0.0f0, Int32(0))
 
         # Load this thread's particle position and angle
         # (will only read later if valid so safe to load unconditionally)
@@ -115,9 +115,9 @@ end #function
                         for j in Int32(1):this_tile_size
                             p_j = shared_tile[j]
                             Δx = p_i.r[1] - p_j.r[1]
-                            Δx -= Lx * round(Int32, Δx / Lx)
                             Δy = p_i.r[2] - p_j.r[2]
-                            Δy -= Ly * round(Int32, Δy / Ly)
+                            Δx -= Lx * round(Δx / Lx)
+                            Δy -= Ly * round(Δy / Ly)
                             if Δx^2 + Δy^2 < R²
                                 θ_ij = p_j.θ - p_i.θ
                                 F_sum_local += F(θ_ij, R²)
@@ -138,7 +138,8 @@ end #function
 
         # Each entry written by exactly one thread in exactly one batch — no atomics needed
         if valid
-            θ_updates[perm[p_idx]] = γ * F_sum_local * dt / n_local + γn * Fn_sum_local * dt
+            polar_term = n_local > Int32(0) ? γ * F_sum_local * dt / Float32(n_local) : 0.0f0
+            θ_updates[perm[p_idx]] = polar_term + γn * Fn_sum_local * dt
         end #if
 
         batch_offset += Int32(128)

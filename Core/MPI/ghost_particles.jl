@@ -3,9 +3,8 @@
 # ------------------------------------------------------------
 
 @kernel function extract_ghosts_kernel!(lefts, rights, counters, @Const(particles), n, x_min_local, x_max_local, R_max)
-    I = @index(Global)
-    # stride = @ndrange()
-    stride = 256 * 256
+    I = Int32(@index(Global, Linear))
+    stride = Int32(@ndrange()[1])
 
     for i = I:stride:n
         p = particles[i]

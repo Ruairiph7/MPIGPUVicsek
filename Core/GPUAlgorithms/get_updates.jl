@@ -1,5 +1,4 @@
-# --------- Carry out cell lists algorithms ---------
-function get_updates_bpc!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params)
+function get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params)
 
     # --------- Create cell list data structures ---------    
 
@@ -11,10 +10,10 @@ function get_updates_bpc!(θ_updates, particles, cells_data, cell_list_params, n
     assign_cell_starts!(cells_data, cell_list_params)
 
     #3) Sort particles
-    sort_particles_bpc!(cells_data, particles, num_particles)
+    sort_particles!(cells_data, particles, num_particles)
 
-    # --------- Calculate θ_updates ---------    
+    # --------- Store interactions in θ_updates ---------    
 
-    calculate_θ_updates_bpc!(θ_updates, cells_data, numerical_params)
+    calculate_interactions!(θ_updates, cells_data, numerical_params)
 
 end #function

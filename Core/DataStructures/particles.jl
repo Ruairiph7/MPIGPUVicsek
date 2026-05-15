@@ -21,7 +21,6 @@ function initialise_rand_bufs(N; ArrayType=CuArray)
     return (; rand1, rand2)
 end #function
 
-
 # --------- Initialise particles ---------
 
 # Initialise just coordinates - used for MPI version

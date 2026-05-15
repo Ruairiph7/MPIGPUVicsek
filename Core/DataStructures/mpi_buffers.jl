@@ -1,5 +1,3 @@
-include("./particles.jl")
-
 # ------------------- Ghost particles ----------------------
 mutable struct GhostBuffers
     lefts::CuArray{Particle}

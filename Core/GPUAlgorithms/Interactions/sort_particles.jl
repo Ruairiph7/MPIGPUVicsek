@@ -1,7 +1,6 @@
 # --------- Sort particles into sorted_particles ---------
 
-function sort_particles_bpc!(cells_data, particles, num_particles)
-
+function sort_particles!(cells_data, particles, num_particles)
     # Reload cell_starts_scratch with cell starts; will increment elements atomically
     # each time a particle in the corresponding cell is inserted into sorted_particles.
     copyto!(cells_data.cell_starts_scratch, cells_data.cell_starts)
@@ -10,7 +9,7 @@ function sort_particles_bpc!(cells_data, particles, num_particles)
     num_workgroups = 256
     total_num_threads = workgroup_size * num_workgroups
 
-    kernel! = sort_particles_bpc_kernel!(CUDABackend(), workgroup_size)
+    kernel! = sort_particles_kernel!(CUDABackend(), workgroup_size)
     kernel!(
         cells_data.sorted_particles,
         cells_data.perm,
@@ -22,7 +21,7 @@ function sort_particles_bpc!(cells_data, particles, num_particles)
     KernelAbstractions.synchronize(CUDABackend())
 end #function
 
-@kernel function sort_particles_bpc_kernel!(
+@kernel function sort_particles_kernel!(
     sorted_particles,
     perm,
     cell_starts_scratch,

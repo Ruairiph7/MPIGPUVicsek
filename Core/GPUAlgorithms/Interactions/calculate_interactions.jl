@@ -1,4 +1,4 @@
-# --------- Calculate θ_updates ---------
+# --------- Store interactions in θ_updates ---------
 # NOTE: Tumbling comes later in the kernel for updating particles.
 
 # Assign a workgroup to each occupied cell, iterate in batches to assign
@@ -8,7 +8,15 @@
 #   - workgroup_size = tile_size = 128, so all threads always participate in tile loading
 #   - Shared memory usage of tile_size * sizeof(Particle) = 128 * 16 = 2 KB per workgroup
 
-function calculate_θ_updates_bpc!(θ_updates, cells_data, numerical_params)
+@inline function F(θ::Float32, R²::Float32)
+    return sin(θ) / (Float32(π) * R²)
+end
+
+@inline function Fn(θ::Float32, R²::Float32)
+    return sin(2 * θ) / (Float32(π) * R²)
+end
+
+function calculate_interactions!(θ_updates, cells_data, numerical_params)
 
     # Need num_occupied on the CPU to launch the correct number of workgroups
     num_occupied_cpu = Array(cells_data.num_occupied)[1]
@@ -17,7 +25,7 @@ function calculate_θ_updates_bpc!(θ_updates, cells_data, numerical_params)
     num_workgroups = num_occupied_cpu
     total_num_threads = workgroup_size * num_workgroups
 
-    kernel! = calculate_θ_updates_bpc_kernel!(CUDABackend(), workgroup_size)
+    kernel! = calculate_interactions_kernel!(CUDABackend(), workgroup_size)
     kernel!(
         θ_updates,
         cells_data.sorted_particles,
@@ -37,7 +45,7 @@ function calculate_θ_updates_bpc!(θ_updates, cells_data, numerical_params)
     KernelAbstractions.synchronize(CUDABackend())
 end #function
 
-@kernel function calculate_θ_updates_bpc_kernel!(
+@kernel function calculate_interactions_kernel!(
     θ_updates,
     @Const(sorted_particles),
     @Const(perm),
@@ -121,16 +129,14 @@ end #function
                             end #if
                         end #for j
                     end #if valid
-                    @synchronize   #Ensure all threads are done before the next load
+                    @synchronize #Ensure all threads are done before the next load
 
                     tile_offset += Int32(128)
                 end #while tile_offset
             end #if nghbr_count
         end #for nghbr
 
-        # ── Write result ────────────────────────────────────────────────────
-        # Each p_idx is written by exactly one thread in exactly one batch —
-        # direct assignment, no atomics needed.
+        # Each entry written by exactly one thread in exactly one batch — no atomics needed
         if valid
             θ_updates[perm[p_idx]] = γ * F_sum_local * dt / n_local + γn * Fn_sum_local * dt
         end #if
@@ -138,4 +144,3 @@ end #function
         batch_offset += Int32(128)
     end #while batch_offset
 end #function
-

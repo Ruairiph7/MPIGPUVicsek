@@ -1,3 +1,5 @@
+# --------- Save plots and/or order parameters ---------
+
 function save_plots_and_OPs(time_step, particles, output_params, num_params, OP_m_file, OP_S_file, rank, comm)
     if (time_step % output_params.steps_to_save_plots == 0) || (time_step % output_params.steps_to_save_OPs == 0)
 

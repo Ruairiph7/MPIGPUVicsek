@@ -11,9 +11,13 @@ struct CellListParams
     num_cells_y::Int32
     num_cells::Int32
 end #struct
-
-function CellListParams(x_min_local::Real, Lx_local::Real, Ly::Real, R_max::Real; SINGLE_RANK::Bool=false)
+function CellListParams(numerical_params; SINGLE_RANK::Bool=false)
+    x_min_local = numerical_params.x_min_local
+    Lx_local = numerical_params.Lx_local
+    Ly = numerical_params.Ly
+    R_max = numerical_params.R_max
     extended_Lx_local = SINGLE_RANK ? Lx_local : Lx_local + 2 * R_max
+
     num_cells_x = floor(Int32, max(1, extended_Lx_local / R_max))
     num_cells_y = floor(Int32, max(1, Ly / R_max))
     cell_size_x = Float32(extended_Lx_local / num_cells_x)
@@ -49,7 +53,7 @@ end #struct
 
 CellList(cell_list_params::CellListParams, N) = CellList(
     CUDA.zeros(Int32, N),
-    CuArray(Vector{Particle}(undef, N)),
+    CuArray{Particle}(undef, N),
     CUDA.zeros(Int32, N),
     CUDA.zeros(Int32, cell_list_params.num_cells),
     CUDA.zeros(Int32, cell_list_params.num_cells),

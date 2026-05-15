@@ -46,7 +46,7 @@ end #function
 # Ghost particle exchange (GPU-only serialisation)
 # ------------------------------------------------------------
 
-function exchange_ghosts!(mpi_bufs, local_particles, comm, rank, nprocs, x_min_local, x_max_local, Lx, R_max, ghost_bufs; SINGLE_RANK=false)
+function exchange_ghosts!(mpi_bufs, local_particles, ghost_bufs, numerical_params, mpi_params; SINGLE_RANK=false)
 
     # --- If only a single GPU, no ghost exchange needed ---
     if SINGLE_RANK
@@ -55,15 +55,28 @@ function exchange_ghosts!(mpi_bufs, local_particles, comm, rank, nprocs, x_min_l
 
     # --- Otherwise: ---
 
-    left_rank = (rank == 0) ? nprocs - 1 : rank - 1
-    right_rank = (rank == nprocs - 1) ? 0 : rank + 1
+    left_rank = (mpi_params.rank == 0) ? mpi_params.nprocs - 1 : mpi_params.rank - 1
+    right_rank = (mpi_params.rank == mpi_params.nprocs - 1) ? 0 : mpi_params.rank + 1
 
     # 1. Identify ghosts
-    ghosts_left_view, ghosts_right_view = extract_ghosts!(ghost_bufs, local_particles, x_min_local, x_max_local, R_max)
+    ghosts_left_view, ghosts_right_view = extract_ghosts!(
+        ghost_bufs,
+        local_particles,
+        numerical_params.x_min_local,
+        numerical_params.x_max_local,
+        numerical_params.R_max)
 
     # 2. Serialize on device
     #   - Apply PBCs if needed to ensure coordinates are in the domain covered by the local cell list
-    send_left_count, send_right_count = pack_particles_to_f32!(mpi_bufs, ghosts_left_view, ghosts_right_view, GHOST_FLAG=true, Lx=Lx, rank=rank, nprocs=nprocs)
+    send_left_count, send_right_count = pack_particles_to_f32!(
+        mpi_bufs,
+        ghosts_left_view,
+        ghosts_right_view,
+        GHOST_FLAG=true,
+        Lx=mpi_params.Lx,
+        rank=mpi_params.rank,
+        nprocs=mpi_params.nprocs)
+
     @assert send_left_count < mpi_bufs.buf_lengths "Too many ghosts"
     @assert send_right_count < mpi_bufs.buf_lengths "Too many ghosts"
 
@@ -77,17 +90,22 @@ function exchange_ghosts!(mpi_bufs, local_particles, comm, rank, nprocs, x_min_l
     ghost_count_left_tag = 101
     ghost_count_right_tag = 102
 
-    MPI.Sendrecv!(send_left_count, recv_right_count, comm,
+    MPI.Sendrecv!(
+        send_left_count,
+        recv_right_count,
+        mpi_params.comm,
         dest=left_rank,
         source=right_rank,
         sendtag=ghost_count_left_tag,
         recvtag=ghost_count_left_tag)
-    MPI.Sendrecv!(send_right_count, recv_left_count, comm,
+    MPI.Sendrecv!(
+        send_right_count,
+        recv_left_count,
+        mpi_params.comm,
         dest=right_rank,
         source=left_rank,
         sendtag=ghost_count_right_tag,
         recvtag=ghost_count_right_tag)
-
 
     # allocate receive buffers on GPU
     recv_left_buf = view(mpi_bufs.recv_left_buf, 1:getindex(recv_left_count))
@@ -97,12 +115,18 @@ function exchange_ghosts!(mpi_bufs, local_particles, comm, rank, nprocs, x_min_l
     ghost_right_tag = 202
 
     # 4. Actual device-aware data exchange
-    MPI.Sendrecv!(send_left_buf, recv_right_buf, comm,
+    MPI.Sendrecv!(
+        send_left_buf,
+        recv_right_buf,
+        mpi_params.comm,
         dest=left_rank,
         source=right_rank,
         sendtag=ghost_left_tag,
         recvtag=ghost_left_tag)
-    MPI.Sendrecv!(send_right_buf, recv_left_buf, comm,
+    MPI.Sendrecv!(
+        send_right_buf,
+        recv_left_buf,
+        mpi_params.comm,
         dest=right_rank,
         source=left_rank,
         sendtag=ghost_right_tag,

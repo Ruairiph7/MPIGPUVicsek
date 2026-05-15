@@ -11,19 +11,18 @@ end
 
 # --------- Initialise structures for particle updates ---------
 
-function initialise_θ_updates(N; ArrayType=CuArray)
-    return ArrayType(zeros(Float32, N))
+function initialise_θ_updates(N)
+    return CUDA.zeros(Float32, N)
 end #function
 
-function initialise_rand_bufs(N; ArrayType=CuArray)
-    rand1 = ArrayType(zeros(Float32, N))
-    rand2 = ArrayType(zeros(Float32, N))
+function initialise_rand_bufs(N)
+    rand1 = CUDA.zeros(Float32, N)
+    rand2 = CUDA.zeros(Float32, N)
     return (; rand1, rand2)
 end #function
 
 # --------- Initialise particles ---------
 
-# Initialise just coordinates - used for MPI version
 function initialise_coords(N, Lx, Ly=Lx; input_files::Union{Nothing,NTuple{3,String}}=nothing)
     if isnothing(input_files)
         rs = [(Lx, Ly) .* @SVector(rand(Float32, 2)) for i = 1:N]
@@ -40,7 +39,14 @@ function initialise_coords(N, Lx, Ly=Lx; input_files::Union{Nothing,NTuple{3,Str
     return rs, θs
 end #function
 
-function initialise_particles(max_particles_per_rank, x_min, x_max, N_total, Lx, Ly, input_files, rank, comm)
+function initialise_particles(max_particles_per_rank, input_files, numerical_params, mpi_params)
+    N_total = numerical_params.N_total
+    x_min_local = numerical_params.x_min_local
+    x_max_local = numerical_params.x_max_local
+    Lx = numerical_params.Lx
+    Ly = numerical_params.Ly
+    rank = mpi_params.rank
+    comm = mpi_params.comm
 
     #Initialise particles on rank 0 and broadcast to others
     rs_all = Vector{SVector{2,Float32}}(undef, N_total)
@@ -61,7 +67,7 @@ function initialise_particles(max_particles_per_rank, x_min, x_max, N_total, Lx,
 
     # Get particles in local domain
     function in_local_domain(r)
-        return x_min <= r[1] < x_max
+        return x_min_local <= r[1] < x_max_local
     end #function
     local_particle_idxs = findall(in_local_domain, rs_all)
     rs_filtered = rs_all[local_particle_idxs]

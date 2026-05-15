@@ -7,7 +7,7 @@ end #struct
 GhostBuffers(max_particles::Union{Int32,Int64}) = GhostBuffers(
     CuArray{Particle}(undef, max_particles),
     CuArray{Particle}(undef, max_particles),
-    CuArray(zeros(Int32, 2))
+    CUDA.zeros(Int32, 2)
 )
 
 # ------------------- Migrant particles ----------------------
@@ -21,7 +21,7 @@ MigrantBuffers(max_particles_on_rank::Union{Int32,Int64}, max_sendrecv_particles
     CuArray{Particle}(undef, max_particles_on_rank),
     CuArray{Particle}(undef, max_sendrecv_particles),
     CuArray{Particle}(undef, max_sendrecv_particles),
-    CuArray(zeros(Int32, 3))
+    CUDA.zeros(Int32, 3)
 )
 
 # ------------------- MPI Send/Recv Buffers ----------------------

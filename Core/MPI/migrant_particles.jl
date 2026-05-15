@@ -53,7 +53,7 @@ end
 # ------------------------------------------------------------
 # Migration exchange between ranks
 # ------------------------------------------------------------
-function exchange_migrants!(mpi_bufs, local_particles, comm, rank, nprocs, x_min_local, x_max_local, R_max, migrant_bufs; SINGLE_RANK=false)
+function exchange_migrants!(mpi_bufs, local_particles, migrant_bufs, numerical_params, mpi_params; SINGLE_RANK=false)
 
     # --- If only a single GPU, all particles are stayers ---
     if SINGLE_RANK
@@ -62,11 +62,16 @@ function exchange_migrants!(mpi_bufs, local_particles, comm, rank, nprocs, x_min
 
     # --- Otherwise: ---
 
-    left_rank = (rank == 0) ? nprocs - 1 : rank - 1
-    right_rank = (rank == nprocs - 1) ? 0 : rank + 1
+    left_rank = (mpi_params.rank == 0) ? mpi_params.nprocs - 1 : mpi_params.rank - 1
+    right_rank = (mpi_params.rank == mpi_params.nprocs - 1) ? 0 : mpi_params.rank + 1
 
     # 1. GPU-only detection + compaction of migrants
-    stayers_view, migrants_left_view, migrants_right_view = sort_migrants!(migrant_bufs, local_particles, x_min_local, x_max_local, R_max)
+    stayers_view, migrants_left_view, migrants_right_view = sort_migrants!(
+        migrant_bufs,
+        local_particles,
+        numerical_params.x_min_local,
+        numerical_params.x_max_local,
+        numerical_params.R_max)
 
     # 2. Serialize migrants
     send_left_count, send_right_count = pack_particles_to_f32!(mpi_bufs, migrants_left_view, migrants_right_view)
@@ -83,12 +88,18 @@ function exchange_migrants!(mpi_bufs, local_particles, comm, rank, nprocs, x_min
     migrant_count_left_tag = 301
     migrant_count_right_tag = 302
 
-    MPI.Sendrecv!(send_left_count, recv_right_count, comm,
+    MPI.Sendrecv!(
+        send_left_count,
+        recv_right_count,
+        mpi_params.comm,
         dest=left_rank,
         source=right_rank,
         sendtag=migrant_count_left_tag,
         recvtag=migrant_count_left_tag)
-    MPI.Sendrecv!(send_right_count, recv_left_count, comm,
+    MPI.Sendrecv!(
+        send_right_count,
+        recv_left_count,
+        mpi_params.comm,
         dest=right_rank,
         source=left_rank,
         sendtag=migrant_count_right_tag,
@@ -102,13 +113,19 @@ function exchange_migrants!(mpi_bufs, local_particles, comm, rank, nprocs, x_min
     migrant_right_tag = 402
 
     # 5. Exchange actual data
-    MPI.Sendrecv!(send_left_buf, recv_right_buf, comm,
+    MPI.Sendrecv!(
+        send_left_buf,
+        recv_right_buf,
+        mpi_params.comm,
         dest=left_rank,
         source=right_rank,
         sendtag=migrant_left_tag,
         recvtag=migrant_left_tag)
 
-    MPI.Sendrecv!(send_right_buf, recv_left_buf, comm,
+    MPI.Sendrecv!(
+        send_right_buf,
+        recv_left_buf,
+        mpi_params.comm,
         dest=right_rank,
         source=left_rank,
         sendtag=migrant_right_tag,

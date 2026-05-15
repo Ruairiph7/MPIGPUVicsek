@@ -5,8 +5,8 @@ struct CellListParams
     x_max_cells::Float32 #End of cell lists in x
     x_min_local::Float32 #Start of local domain in x
     x_max_local::Float32 #End of local domain in x
-    cell_size_x::Float32
-    cell_size_y::Float32
+    inv_cell_size_x::Float32 #1/cell_size_x - used for get_cell_ID
+    inv_cell_size_y::Float32 #1/cell_size_y - used for get_cell_ID
     num_cells_x::Int32
     num_cells_y::Int32
     num_cells::Int32
@@ -18,20 +18,21 @@ function CellListParams(x_min_local::Real, Lx_local::Real, Ly::Real, R_max::Real
     num_cells_y = floor(Int32, max(1, Ly / R_max))
     cell_size_x = Float32(extended_Lx_local / num_cells_x)
     cell_size_y = Float32(Ly / num_cells_y)
+    inv_cell_size_x = 1.0f0 / cell_size_x
+    inv_cell_size_y = 1.0f0 / cell_size_y
     num_cells = num_cells_x * num_cells_y
     num_cells >= typemax(Int32) && error("Too many cells to resolve with Int32")
     x_max_local = x_min_local + Lx_local
     x_min_cells = SINGLE_RANK ? x_min_local : x_min_local - R_max
     x_max_cells = SINGLE_RANK ? x_max_local : x_max_local + R_max
-    return CellListParams(Float32(x_min_cells), Float32(x_max_cells), Float32(x_min_local), Float32(x_max_local), cell_size_x, cell_size_y, num_cells_x, num_cells_y, num_cells)
+    return CellListParams(Float32(x_min_cells), Float32(x_max_cells), Float32(x_min_local), Float32(x_max_local), inv_cell_size_x, inv_cell_size_y, num_cells_x, num_cells_y, num_cells)
 end #function
-
 
 # --------- Cell List Functions ---------
 
 #Assume particle is inside cell list domain (so ghosts must be correctly wrapped already)
-@inline function get_cell_ID(r, num_cells_x, num_cells_y, cell_size_x, cell_size_y)
-    x_idx = min(floor(Int32, r[1] / cell_size_x), num_cells_x - Int32(1))
-    y_idx = min(floor(Int32, r[2] / cell_size_y), num_cells_y - Int32(1))
-    return Int32(1) + x_idx + num_cells_x * y_idx
+@inline function get_cell_ID(r, x_min_cells, num_cells_x, num_cells_y, inv_cell_size_x, inv_cell_size_y)
+    x_idx = clamp(Int32(floor((r[1] - x_min_cells) * inv_cell_size_x)), Int32(0), num_cells_x - Int32(1))
+    y_idx = clamp(Int32(floor(r[2] * inv_cell_size_y)), Int32(0), num_cells_y - Int32(1))
+    return Int32(1) + x_idx + num_cells_x * y_idx #1-based
 end

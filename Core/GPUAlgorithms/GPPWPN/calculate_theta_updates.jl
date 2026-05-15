@@ -20,10 +20,11 @@ function calculate_θ_updates_gppwpn!(θ_updates, cells_data, cell_list_params, 
         cells_data.cell_ends,
         cells_data.cell_neighbours,
         cells_data.perm,
+        cell_list_params.x_min_cells,
         cell_list_params.num_cells_x,
         cell_list_params.num_cells_y,
-        cell_list_params.cell_size_x,
-        cell_list_params.cell_size_y,
+        cell_list_params.inv_cell_size_x,
+        cell_list_params.inv_cell_size_y,
         numerical_params.Lx,
         numerical_params.Ly,
         numerical_params.R²,
@@ -42,10 +43,11 @@ end #function
     @Const(cell_ends),
     @Const(cell_neighbours),
     @Const(perm),
+    x_min_cells,
     num_cells_x,
     num_cells_y,
-    cell_size_x,
-    cell_size_y,
+    inv_cell_size_x,
+    inv_cell_size_y,
     Lx, Ly,
     R², Rn²,
     γ, γn,
@@ -67,7 +69,7 @@ end #function
 
     # --------- Prepare variables ---------
     p_i = sorted_particles[i] # = particles[perm[i]]
-    this_cell_idx = get_cell_ID(p_i.r, num_cells_x, num_cells_y, cell_size_x, cell_size_y)
+    this_cell_idx = get_cell_ID(p_i.r, x_min_cells, num_cells_x, num_cells_y, inv_cell_size_x, inv_cell_size_y) #1-based
     nghbr_cell_idx = cell_neighbours[warp_idx+Int32(1), this_cell_idx]
 
     nghbr_cell_start = cell_starts[nghbr_cell_idx]

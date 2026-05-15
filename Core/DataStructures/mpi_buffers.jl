@@ -7,7 +7,7 @@ end #struct
 GhostBuffers(max_particles::Union{Int32,Int64}) = GhostBuffers(
     CuArray{Particle}(undef, max_particles),
     CuArray{Particle}(undef, max_particles),
-    CuArray(zeros(Float32, 2))
+    CuArray(zeros(Int32, 2))
 )
 
 # ------------------- Migrant particles ----------------------
@@ -21,7 +21,7 @@ MigrantBuffers(max_particles_on_rank::Union{Int32,Int64}, max_sendrecv_particles
     CuArray{Particle}(undef, max_particles_on_rank),
     CuArray{Particle}(undef, max_sendrecv_particles),
     CuArray{Particle}(undef, max_sendrecv_particles),
-    CuArray(zeros(Float32, 3))
+    CuArray(zeros(Int32, 3))
 )
 
 # ------------------- MPI Send/Recv Buffers ----------------------
@@ -30,12 +30,12 @@ mutable struct SendRecvBuffers
     send_right_buf::CuArray{Float32}
     recv_left_buf::CuArray{Float32}
     recv_right_buf::CuArray{Float32}
-    buf_lengths::Union{Int32,Int64}
+    buf_lengths::Int32
 end #struct
 SendRecvBuffers(buf_lengths::Union{Int32,Int64}) = SendRecvBuffers(
     CuArray{Float32}(undef, buf_lengths),
     CuArray{Float32}(undef, buf_lengths),
     CuArray{Float32}(undef, buf_lengths),
     CuArray{Float32}(undef, buf_lengths),
-    buf_lengths
+    Int32(buf_lengths)
 )

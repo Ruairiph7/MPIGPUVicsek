@@ -114,16 +114,17 @@ end #function
                     if valid
                         for j in Int32(1):this_tile_size
                             p_j = shared_tile[j]
-                            Δx = p_i.r[1] - p_j.r[1]
-                            Δy = p_i.r[2] - p_j.r[2]
+                            Δx = x_i - p_j.r[1]
+                            Δy = y_i - p_j.r[2]
                             Δx -= Lx * round(Δx / Lx)
                             Δy -= Ly * round(Δy / Ly)
-                            if Δx^2 + Δy^2 < R²
+                            Δr² = Δx * Δx + Δy * Δy
+                            if Δr² < R²
                                 θ_ij = p_j.θ - p_i.θ
                                 F_sum_local += F(θ_ij, R²)
                                 n_local += Int32(1)
                             end #if
-                            if Δx^2 + Δy^2 < Rn²
+                            if Δr² < Rn²
                                 θ_ij = p_j.θ - p_i.θ
                                 Fn_sum_local += Fn(θ_ij, Rn²)
                             end #if

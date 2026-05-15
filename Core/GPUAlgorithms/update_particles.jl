@@ -9,7 +9,7 @@ function update_particles!(particles, θ_updates, numerical_params, rand_bufs)
     num_workgroups = 256
     total_num_threads = workgroup_size * num_workgroups
 
-    kernel! = update_particles_kernel!(CUDABackend())
+    kernel! = update_particles_kernel!(CUDABackend(), workgroup_size)
     kernel!(
         particles,
         θ_updates,

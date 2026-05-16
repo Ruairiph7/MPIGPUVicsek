@@ -18,7 +18,7 @@ function sort_particles!(cells_data, particles, num_particles)
         particles,
         num_particles;
         ndrange=total_num_threads)
-    KernelAbstractions.synchronize(CUDABackend())
+    # KernelAbstractions.synchronize(CUDABackend())
 end #function
 
 @kernel function sort_particles_kernel!(

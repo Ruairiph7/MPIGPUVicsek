@@ -42,7 +42,7 @@ function calculate_interactions!(θ_updates, cells_data, numerical_params)
         numerical_params.γn,
         numerical_params.dt;
         ndrange=total_num_threads)
-    KernelAbstractions.synchronize(CUDABackend())
+    # KernelAbstractions.synchronize(CUDABackend())
 end #function
 
 @kernel function calculate_interactions_kernel!(

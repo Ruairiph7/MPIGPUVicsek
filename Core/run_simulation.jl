@@ -274,7 +274,7 @@ function run_simulation(N_total, max_steps;
         end #if time_step
         #---------------------------------------------#
 
-        KernelAbstractions.synchronize(backend)
+        KernelAbstractions.synchronize(CUDABackend())
     end #for time_step
 
     #Close file if saving order parameter

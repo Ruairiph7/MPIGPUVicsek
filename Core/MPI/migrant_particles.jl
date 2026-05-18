@@ -74,7 +74,7 @@ function exchange_migrants!(mpi_bufs, local_particles, migrant_bufs, numerical_p
         numerical_params.R_max)
 
     # 2. Serialize migrants
-    send_left_count, send_right_count = pack_particles_to_f32!(mpi_bufs, migrants_left_view, migrants_right_view)
+    send_left_count, send_right_count = pack_particles!(mpi_bufs, migrants_left_view, migrants_right_view)
     @assert send_left_count < mpi_bufs.buf_lengths "Too many migrants"
     @assert send_right_count < mpi_bufs.buf_lengths "Too many migrants"
 

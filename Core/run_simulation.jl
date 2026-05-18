@@ -188,7 +188,7 @@ function run_simulation(N_total, max_steps;
         end #if
 
         #Deserialize ghosts and add into particles after local_particles
-        unpack_f32_to_particles!(particles, num_local_particles, recv_left_buf, recv_right_buf)
+        unpack_particles!(particles, num_local_particles, recv_left_buf, recv_right_buf)
         #---------------------------------------------#
 
 
@@ -242,7 +242,7 @@ function run_simulation(N_total, max_steps;
         #Load stayers into the beginning of particles
         particles[1:n_stay] .= stayers
         #Deserialize migrants and add into particles after stayers
-        unpack_f32_to_particles!(particles, n_stay, recv_left_buf, recv_right_buf)
+        unpack_particles!(particles, n_stay, recv_left_buf, recv_right_buf)
         #Reset local_particles
         local_particles = view(particles, 1:num_local_particles)
         #---------------------------------------------#

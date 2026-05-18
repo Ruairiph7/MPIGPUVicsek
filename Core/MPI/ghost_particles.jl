@@ -68,7 +68,7 @@ function exchange_ghosts!(mpi_bufs, local_particles, ghost_bufs, numerical_param
 
     # 2. Serialize on device
     #   - Apply PBCs if needed to ensure coordinates are in the domain covered by the local cell list
-    send_left_count, send_right_count = pack_particles_to_f32!(
+    send_left_count, send_right_count = pack_particles!(
         mpi_bufs,
         ghosts_left_view,
         ghosts_right_view,

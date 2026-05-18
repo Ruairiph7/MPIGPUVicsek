@@ -26,16 +26,16 @@ MigrantBuffers(max_particles_on_rank::Union{Int32,Int64}, max_sendrecv_particles
 
 # ------------------- MPI Send/Recv Buffers ----------------------
 mutable struct SendRecvBuffers
-    send_left_buf::CuArray{Float32}
-    send_right_buf::CuArray{Float32}
-    recv_left_buf::CuArray{Float32}
-    recv_right_buf::CuArray{Float32}
+    send_left_buf::CuArray{UInt32}
+    send_right_buf::CuArray{UInt32}
+    recv_left_buf::CuArray{UInt32}
+    recv_right_buf::CuArray{UInt32}
     buf_lengths::Int32
 end #struct
 SendRecvBuffers(buf_lengths::Union{Int32,Int64}) = SendRecvBuffers(
-    CuArray{Float32}(undef, buf_lengths),
-    CuArray{Float32}(undef, buf_lengths),
-    CuArray{Float32}(undef, buf_lengths),
-    CuArray{Float32}(undef, buf_lengths),
+    CuArray{UInt32}(undef, buf_lengths),
+    CuArray{UInt32}(undef, buf_lengths),
+    CuArray{UInt32}(undef, buf_lengths),
+    CuArray{UInt32}(undef, buf_lengths),
     Int32(buf_lengths)
 )

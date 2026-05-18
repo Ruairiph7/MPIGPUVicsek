@@ -9,14 +9,14 @@
     for i = I:stride:size
         p = particles[i]
         base = 4 * (i - 1)
-        out[base+1] = p.x + x_offset
-        out[base+2] = p.y
-        out[base+3] = p.θ
-        out[base+4] = Float32(p.uid)
+        out[base+1] = reinterpret(UInt32, p.x + x_offset)
+        out[base+2] = reinterpret(UInt32, p.y)
+        out[base+3] = reinterpret(UInt32, p.θ)
+        out[base+4] = reinterpret(UInt32, p.uid)
     end #for i
 end
 
-function pack_particles_to_f32!(bufs::SendRecvBuffers, lefts::CuArray{Particle}, rights::CuArray{Particle}; GHOST_FLAG::Bool=false, Lx::Int32=Int32(0), rank::Int=0, nprocs::Int=0)
+function pack_particles!(bufs::SendRecvBuffers, lefts::CuArray{Particle}, rights::CuArray{Particle}; GHOST_FLAG::Bool=false, Lx::Int32=Int32(0), rank::Int=0, nprocs::Int=0)
     n_left = length(lefts)
     n_right = length(rights)
     left_count = Ref{Int32}(4 * n_left)
@@ -28,14 +28,14 @@ function pack_particles_to_f32!(bufs::SendRecvBuffers, lefts::CuArray{Particle},
     total_num_threads = workgroup_size * num_workgroups
     kernel! = serialize_kernel!(CUDABackend())
 
-    x_offset = Int32(0)
+    x_offset = 0.0f0
     if n_left != 0
-        GHOST_FLAG && (rank == 0) && (x_offset = Lx)
+        GHOST_FLAG && (rank == 0) && (x_offset = Float32(Lx))
         kernel!(view(bufs.send_left_buf, 1:4*n_left), lefts, n_left, x_offset; ndrange=total_num_threads)
         KernelAbstractions.synchronize(CUDABackend())
     end #if (n_left != 0)
     if n_right != 0
-        GHOST_FLAG && (rank == nprocs - 1) && (x_offset = -Lx)
+        GHOST_FLAG && (rank == nprocs - 1) && (x_offset = Float32(-Lx))
         kernel!(view(bufs.send_right_buf, 1:4*n_right), rights, n_right, x_offset; ndrange=total_num_threads)
         KernelAbstractions.synchronize(CUDABackend())
     end #if (n_right != 0)

@@ -8,15 +8,15 @@
 
     for i = I:stride:size
         base = 4 * (i - 1)
-        x = buf[base+1]
-        y = buf[base+2]
-        θ = buf[base+3]
-        uid = Int32(buf[base+4])
+        x = reinterpret(Float32, buf[base+1])
+        y = reinterpret(Float32, buf[base+2])
+        θ = reinterpret(Float32, buf[base+3])
+        uid = reinterpret(Int32, buf[base+4])
         out[i] = Particle(x, y, θ, uid)
     end #for i
 end
 
-function unpack_f32_to_particles!(particles, base_num_particles, left_buf, right_buf)
+function unpack_particles!(particles, base_num_particles, left_buf, right_buf)
     n_left = length(left_buf) ÷ 4
     n_right = length(right_buf) ÷ 4
     n_left == n_right == 0 && return nothing

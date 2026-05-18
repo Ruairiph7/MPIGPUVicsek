@@ -37,12 +37,12 @@ function run_simulation(N_total, max_steps;
     nprocs = MPI.Comm_size(comm)
     mpi_params = (; comm, rank, nprocs)
 
-    #TODO: CHECK THIS
-    # # set CUDA device using local rank mapping to avoid colliding GPUs across nodes
-    # Use shared communicator to get local rank on node
     local_comm = MPI.Comm_split_type(comm, MPI.COMM_TYPE_SHARED, MPI.Comm_rank(comm))
     local_rank = MPI.Comm_rank(local_comm)
-    # Bind to local GPU slot
+    local_num_devices = CUDA.ndevices()
+    if local_rank >= n_devices
+        error("Rank $rank: local_rank $local_rank exceeds available GPUs ($local_num_devices) on this node")
+    end
     CUDA.device!(local_rank)
 
     # Flag if we only have a single MPI rank -- avoid communication 

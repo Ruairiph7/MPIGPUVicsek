@@ -40,7 +40,7 @@ function run_simulation(N_total, max_steps;
     local_comm = MPI.Comm_split_type(comm, MPI.COMM_TYPE_SHARED, MPI.Comm_rank(comm))
     local_rank = MPI.Comm_rank(local_comm)
     local_num_devices = CUDA.ndevices()
-    if local_rank >= n_devices
+    if local_rank >= local_num_devices
         error("Rank $rank: local_rank $local_rank exceeds available GPUs ($local_num_devices) on this node")
     end
     CUDA.device!(local_rank)

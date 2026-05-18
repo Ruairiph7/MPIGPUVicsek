@@ -86,7 +86,7 @@ end #function
 
         F_sum_local = 0.0f0
         Fn_sum_local = 0.0f0
-        n_local = Int32(0)
+        n_local = 0.0f0
 
         # --------- Loop over neighbouring cells (including self) ---------
         for nghbr in Int32(1):Int32(9)
@@ -122,7 +122,7 @@ end #function
                             if Δr² < R²
                                 θ_ij = p_j.θ - p_i.θ
                                 F_sum_local += F(θ_ij, R²)
-                                n_local += Int32(1)
+                                n_local += 1.0f0
                             end #if
                             if Δr² < Rn²
                                 θ_ij = p_j.θ - p_i.θ
@@ -139,7 +139,7 @@ end #function
 
         # Each entry written by exactly one thread in exactly one batch — no atomics needed
         if valid
-            polar_term = n_local > Int32(0) ? γ * F_sum_local * dt / Float32(n_local) : 0.0f0
+            polar_term = n_local > 0.0f0 ? γ * F_sum_local * dt / n_local : 0.0f0
             θ_updates[perm[p_idx]] = polar_term + γn * Fn_sum_local * dt
         end #if
 

@@ -8,7 +8,7 @@
 
     for i = I:stride:n
         p = particles[i]
-        x = p.r[1]
+        x = p.x
         if x_min_local - R_max <= x < x_min_local #Particle is in the cell immediately to the left; moved to left domain
             idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
             lefts[idx+1] = p

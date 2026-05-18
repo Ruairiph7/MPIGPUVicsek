@@ -43,7 +43,8 @@ end #function
 
     for i = I:stride:num_particles
         this_particle = particles[i]
-        r_i = this_particle.r
+        x_i = this_particle.x
+        y_i = this_particle.y
         θ_i = this_particle.θ
         uid_i = this_particle.uid
         this_rand1 = rand1[i]
@@ -54,16 +55,9 @@ end #function
             this_θ_update = θ_updates[i]
         end #if
 
-        r_i = get_new_r(r_i, θ_i, dt, v, Lx, Ly)
+        x_i = mod(x_i + dt * v * cos(θ_i), Lx)
+        y_i = mod(y_i + dt * v * sin(θ_i), Ly) 
         θ_i = θ_i + this_θ_update
-        particles[i] = Particle(r_i, θ_i, uid_i)
+        particles[i] = Particle(x_i, y_i, θ_i, uid_i)
     end #for i
 end #function
-
-@inline function get_new_r(r, θ, dt, v, Lx, Ly)
-    return @SVector [
-        mod(r[1] + dt * v * cos(θ), Lx),
-        mod(r[2] + dt * v * sin(θ), Ly)
-    ]
-end #function
-

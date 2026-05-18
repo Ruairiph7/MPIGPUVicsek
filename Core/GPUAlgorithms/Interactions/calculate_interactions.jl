@@ -81,8 +81,8 @@ end #function
 
         # Load this thread's particle position and angle
         # (will only read later if valid so safe to load unconditionally)
-        x_i = valid ? p_i.r[1] : 0.0f0
-        y_i = valid ? p_i.r[2] : 0.0f0
+        x_i = valid ? p_i.x : 0.0f0
+        y_i = valid ? p_i.y : 0.0f0
 
         F_sum_local = 0.0f0
         Fn_sum_local = 0.0f0
@@ -114,8 +114,8 @@ end #function
                     if valid
                         for j in Int32(1):this_tile_size
                             p_j = shared_tile[j]
-                            Δx = x_i - p_j.r[1]
-                            Δy = y_i - p_j.r[2]
+                            Δx = x_i - p_j.x
+                            Δy = y_i - p_j.y
                             Δx -= Lx * round(Δx / Lx)
                             Δy -= Ly * round(Δy / Ly)
                             Δr² = Δx * Δx + Δy * Δy

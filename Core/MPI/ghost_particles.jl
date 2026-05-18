@@ -8,7 +8,7 @@
 
     for i = I:stride:n
         p = particles[i]
-        x = p.r[1]
+        x = p.x
         if x < x_min_local + R_max #Ghost to be sent left
             idx = CUDA.atomic_add!(pointer(counters, 1), Int32(1))
             lefts[idx+1] = p

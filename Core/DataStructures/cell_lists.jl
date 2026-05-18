@@ -90,8 +90,8 @@ end #function
 # --------- Cell List Functions ---------
 
 #Assume particle is inside cell list domain (so ghosts must be correctly wrapped already)
-@inline function get_cell_ID(r, x_min_cells, num_cells_x, num_cells_y, inv_cell_size_x, inv_cell_size_y)
-    x_idx = clamp(Int32(floor((r[1] - x_min_cells) * inv_cell_size_x)), Int32(0), num_cells_x - Int32(1))
-    y_idx = clamp(Int32(floor(r[2] * inv_cell_size_y)), Int32(0), num_cells_y - Int32(1))
+@inline function get_cell_ID(x, y, x_min_cells, num_cells_x, num_cells_y, inv_cell_size_x, inv_cell_size_y)
+    x_idx = clamp(Int32(floor((x - x_min_cells) * inv_cell_size_x)), Int32(0), num_cells_x - Int32(1))
+    y_idx = clamp(Int32(floor(y * inv_cell_size_y)), Int32(0), num_cells_y - Int32(1))
     return Int32(1) + x_idx + num_cells_x * y_idx #1-based
 end

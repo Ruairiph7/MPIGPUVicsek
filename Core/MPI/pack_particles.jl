@@ -9,8 +9,8 @@
     for i = I:stride:size
         p = particles[i]
         base = 4 * (i - 1)
-        out[base+1] = p.r[1] + x_offset
-        out[base+2] = p.r[2]
+        out[base+1] = p.x + x_offset
+        out[base+2] = p.y
         out[base+3] = p.θ
         out[base+4] = Float32(p.uid)
     end #for i

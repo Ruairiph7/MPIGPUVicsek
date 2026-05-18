@@ -11,15 +11,17 @@ function save_plots_and_OPs(
 
     if (time_step % output_params.steps_to_save_plots == 0) || (time_step % output_params.steps_to_save_OPs == 0)
 
-        local_rs, local_θs, local_uids = unpack_coords(Array(particles))
+        local_xs, local_ys, local_θs, local_uids = unpack_coords(Array(particles))
 
         if output_params.save_plots && (time_step % output_params.steps_to_save_plots == 0)
-            global_rs = MPI.gather(local_rs, mpi_params.comm)
+            global_xs = MPI.gather(local_xs, mpi_params.comm)
+            global_ys = MPI.gather(local_ys, mpi_params.comm)
             global_θs = MPI.gather(local_θs, mpi_params.comm)
 
             if mpi_params.rank == 0
                 output_dir = "plots/"
-                rs = vcat(global_rs...)
+                xs = vcat(global_xs...)
+                ys = vcat(global_ys...)
                 θs = vcat(global_θs...)
 
                 fig = Figure()
@@ -29,7 +31,7 @@ function save_plots_and_OPs(
                 colors = mod.(θs, 2π)
                 colormap = :hsv
                 colorrange = (0, 2π)
-                scatter!(ax, rs, markersize=output_params.markersize,
+                scatter!(ax, xs, ys, markersize=output_params.markersize,
                     color=colors, colormap=colormap, colorrange=colorrange)
                 file_name = "snapshot_" * output_params.file_name_addon * "_" * lpad(time_step, 8, "0") * ".png"
                 CairoMakie.save(output_dir * file_name, fig)

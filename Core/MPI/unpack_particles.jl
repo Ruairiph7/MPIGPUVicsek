@@ -12,7 +12,7 @@
         y = buf[base+2]
         θ = buf[base+3]
         uid = Int32(buf[base+4])
-        out[i] = Particle(SVector{2,Float32}(x, y), θ, uid)
+        out[i] = Particle(x, y, θ, uid)
     end #for i
 end
 

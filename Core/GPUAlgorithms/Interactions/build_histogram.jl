@@ -43,7 +43,7 @@ end #function
     stride = Int32(@ndrange()[1])
 
     for i = I:stride:num_particles
-        c = get_cell_ID(particles[i].r, x_min_cells, num_cells_x, num_cells_y, inv_cell_size_x, inv_cell_size_y)
+        c = get_cell_ID(particles[i].x, particles[i].y, x_min_cells, num_cells_x, num_cells_y, inv_cell_size_x, inv_cell_size_y)
 
         cell_indices[i] = c
         old_cell_count = CUDA.atomic_add!(pointer(cell_counts, c), Int32(1))

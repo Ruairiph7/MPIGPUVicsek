@@ -4,7 +4,8 @@ using CUDA
 # --------- Data structures ---------
 
 struct Particle
-    r::SVector{2,Float32}
+    x::Float32
+    y::Float32
     θ::Float32
     uid::Int32 #"Unique id"
 end
@@ -25,7 +26,8 @@ end #function
 
 function initialise_coords(N, Lx, Ly=Lx; input_files::Union{Nothing,NTuple{3,String}}=nothing)
     if isnothing(input_files)
-        rs = [(Lx, Ly) .* @SVector(rand(Float32, 2)) for i = 1:N]
+        xs = [Lx * rand(Float32) for i in 1:N]
+        ys = [Ly * rand(Float32) for i in 1:N]
         θs = [Float32(2π * rand()) for i = 1:N]
     else
         xs = Float32.(vec(readdlm(input_files[1])))
@@ -34,9 +36,8 @@ function initialise_coords(N, Lx, Ly=Lx; input_files::Union{Nothing,NTuple{3,Str
         length(xs) != N && error("Wrong number of particles in x input file")
         length(ys) != N && error("Wrong number of particles in y input file")
         length(θs) != N && error("Wrong number of particles in theta input file")
-        rs = [SVector{2,Float32}([xs[i], ys[i]]) for i = 1:N]
     end
-    return rs, θs
+    return xs, ys, θs
 end #function
 
 function initialise_particles(max_particles_per_rank, input_files, numerical_params, mpi_params)
@@ -49,38 +50,33 @@ function initialise_particles(max_particles_per_rank, input_files, numerical_par
     comm = mpi_params.comm
 
     #Initialise particles on rank 0 and broadcast to others
-    rs_all = Vector{SVector{2,Float32}}(undef, N_total)
-    rs_all_flat = Vector{Float32}(undef, 2 * N_total)
+    xs_all = Vector{Float32}(undef, N_total)
+    ys_all = Vector{Float32}(undef, N_total)
     θs_all = Vector{Float32}(undef, N_total)
     if rank == 0
-        rs_all, θs_all = initialise_coords(N_total, Lx, Ly, input_files=input_files)
-        rs_all_flat = Float32[x for r in rs_all for x in r]
+        xs_all, ys_all, θs_all = initialise_coords(N_total, Lx, Ly, input_files=input_files)
     end
-    MPI.Bcast!(rs_all_flat, 0, comm)
-
-    @assert length(rs_all_flat) ÷ 2 == N_total
-    for i in 1:N_total
-        rs_all[i] = SVector{2,Float32}(rs_all_flat[2i-1], rs_all_flat[2i])
-    end #for i
-
+    MPI.Bcast!(xs_all, 0, comm)
+    MPI.Bcast!(ys_all, 0, comm)
     MPI.Bcast!(θs_all, 0, comm)
 
     # Get particles in local domain
-    function in_local_domain(r)
-        return x_min_local <= r[1] < x_max_local
+    function in_local_domain(x)
+        return x_min_local <= x < x_max_local
     end #function
-    local_particle_idxs = findall(in_local_domain, rs_all)
-    rs_filtered = rs_all[local_particle_idxs]
+    local_particle_idxs = findall(in_local_domain, xs_all)
+    xs_filtered = xs_all[local_particle_idxs]
+    ys_filtered = ys_all[local_particle_idxs]
     θs_filtered = θs_all[local_particle_idxs]
 
-    N_local = length(rs_filtered)
+    N_local = length(xs_filtered)
     N_offset = MPI.Exscan(N_local, +, comm)
     rank == 0 && (N_offset = 0)
 
     # Create local particles on CPU, using N_offset to assign unique IDs that hold globally
     local_particles_cpu = [
-        Particle(r, θ, Int32(N_offset + i))
-        for (i, (r, θ)) in enumerate(zip(rs_filtered, θs_filtered))
+        Particle(x, y, θ, Int32(N_offset + i))
+        for (i, (x, y, θ)) in enumerate(zip(xs_filtered, ys_filtered, θs_filtered))
     ]
 
     # Initialise particles array on CPU, using the first num_local_particles entries for the ones in our domain
@@ -97,15 +93,17 @@ end #function
 # --------- Unpack particles into coordinates ---------
 
 function unpack_coords(particles_array::Array{Particle})
-    rs = zeros(SVector{2,Float32}, length(particles_array))
+    xs = zeros(Float32, length(particles_array))
+    ys = zeros(Float32, length(particles_array))
     θs = zeros(Float32, length(particles_array))
     uids = zeros(Int32, length(particles_array))
     @inbounds for i = 1:length(particles_array)
         particle_i = particles_array[i]
-        rs[i] = particle_i.r
+        xs[i] = particle_i.x
+        ys[i] = particle_i.y
         θs[i] = particle_i.θ
         uids[i] = particle_i.uid
     end #for i
-    return rs, θs, uids
+    return xs, ys, θs, uids
 end #function
 

@@ -77,7 +77,7 @@ end #function
         p_offset = batch_offset + local_tidx - Int32(1)
         valid = p_offset < cell_count
         p_idx = cell_start + p_offset
-        p_i = valid ? sorted_particles[p_idx] : Particle(@SVector([0.0f0, 0.0f0]), 0.0f0, Int32(0))
+        p_i = valid ? sorted_particles[p_idx] : Particle(0.0f0, 0.0f0, 0.0f0, Int32(0))
 
         # Load this thread's particle position and angle
         # (will only read later if valid so safe to load unconditionally)

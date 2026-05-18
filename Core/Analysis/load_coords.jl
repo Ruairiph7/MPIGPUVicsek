@@ -7,22 +7,25 @@ using DelimitedFiles
 # include("../DataStructures/particles.jl")
 
 struct Particle
-    r::SVector{2,Float32}
+    x::Float32
+    y::Float32
     θ::Float32
     uid::Int32 #"Unique id"
 end
 
 function unpack_coords(particles_array::Array{Particle})
-    rs = zeros(SVector{2,Float32}, length(particles_array))
+    xs = zeros(Float32, length(particles_array))
+    ys = zeros(Float32, length(particles_array))
     θs = zeros(Float32, length(particles_array))
     uids = zeros(Int32, length(particles_array))
     @inbounds for i = 1:length(particles_array)
         particle_i = particles_array[i]
-        rs[i] = particle_i.r
+        xs[i] = particle_i.x
+        ys[i] = particle_i.y
         θs[i] = particle_i.θ
         uids[i] = particle_i.uid
     end #for i
-    return rs, θs, uids
+    return xs, ys, θs, uids
 end #function
 # ---------------------------------------- #
 
@@ -53,11 +56,12 @@ function load_coords_from_timestep(timestep_dir::String; nprocs::Union{Nothing,I
 
     N_so_far = 0
     for proc_idx = 1:nprocs
-        these_rs, these_θs, these_uids = coord_arrays[proc_idx]
-        N_local = length(these_rs)
+        these_xs, these_ys, these_θs, these_uids = coord_arrays[proc_idx]
+        N_local = length(these_xs)
         for local_idx = 1:N_local
             global_idx = N_so_far + local_idx
-            xs[global_idx], ys[global_idx] = these_rs[local_idx]
+            xs[global_idx] = these_xs[local_idx]
+            ys[global_idx] = these_ys[local_idx]
             θs[global_idx] = these_θs[local_idx]
             uids[global_idx] = these_uids[local_idx]
         end #for local_idx
@@ -114,11 +118,12 @@ function load_coords_and_ranks_from_timestep(timestep_dir::String; nprocs::Union
 
     N_so_far = 0
     for proc_idx = 1:nprocs
-        these_rs, these_θs, these_uids = coord_arrays[proc_idx]
+        these_xs, these_ys, these_θs, these_uids = coord_arrays[proc_idx]
         N_local = length(these_rs)
         for local_idx = 1:N_local
             global_idx = N_so_far + local_idx
-            xs[global_idx], ys[global_idx] = these_rs[local_idx]
+            xs[global_idx] = these_xs[local_idx]
+            ys[global_idx] = these_ys[local_idx]
             θs[global_idx] = these_θs[local_idx]
             uids[global_idx] = these_uids[local_idx]
             ranks[global_idx] = proc_idx - 1

@@ -55,8 +55,9 @@ function run_simulation(N_total, max_steps;
 
     #Store numerical parameters
     R² = R^2
+    inv_R² = 1/R²
     numerical_params = (; N_total,
-        dt, R, R², γ, λ, v,
+        dt, R, R², inv_R², γ, λ, v,
         Lx, Ly, Lx_local,
         x_min_local, x_max_local)
 

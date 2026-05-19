@@ -9,10 +9,9 @@
 #   - Shared memory usage of tile_size * sizeof(Particle) = 128 * 16 = 2 KB per workgroup
 
 const inv_π32 = 0.31830987f0 #Hard code Float32(1/π)
-const π32 = 3.1415927f0 #Hard code Float32(π)
 
-@inline function F(θ::Float32, R²::Float32)
-    return sin(θ) / (π32 * R²)
+@inline function F(θ::Float32, inv_R²::Float32)
+    return sin(θ) * inv_π32 * inv_R²
 end #function
 
 function calculate_interactions!(θ_updates, cells_data, cell_list_params, numerical_params)
@@ -33,6 +32,7 @@ function calculate_interactions!(θ_updates, cells_data, cell_list_params, numer
         numerical_params.Lx,
         numerical_params.Ly,
         numerical_params.R²,
+        numerical_params.inv_R²,
         numerical_params.γ,
         numerical_params.dt;
         ndrange=total_num_threads)
@@ -124,7 +124,7 @@ end #function
                                 θ_ij = p_j.θ - θ_i
 
                                 WITHIN_R = Float32(Δr² < R²)
-                                F_sum_local += WITHIN_R * F(θ_ij, R²)
+                                F_sum_local += WITHIN_R * F(θ_ij, inv_R²)
                                 n_local += WITHIN_R
                             end #for j
                         end #if VALID_IDX

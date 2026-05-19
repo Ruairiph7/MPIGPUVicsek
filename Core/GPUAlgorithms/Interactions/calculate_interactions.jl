@@ -86,6 +86,7 @@ end #function
             # (will only read later if valid so safe to load unconditionally)
             x_i = p_i.x
             y_i = p_i.y
+            θ_i = p_i.θ
 
             F_sum_local = 0.0f0
             Fn_sum_local = 0.0f0
@@ -124,14 +125,14 @@ end #function
                                 Δx -= Lx * round(Δx / Lx)
                                 Δy -= Ly * round(Δy / Ly)
                                 Δr² = Δx * Δx + Δy * Δy
-                                θ_ij = p_j.θ - p_i.θ
+                                θ_ij = p_j.θ - θ_i
 
                                 WITHIN_R = Float32(Δr² < R²)
                                 WITHIN_Rn = Float32(Δr² < Rn²)
 
                                 F_sum_local += WITHIN_R * F(θ_ij, R²)
                                 n_local += WITHIN_R
-                                Fn_sum_local += WITHIN_Rn * Fn(θ_ij, Rn²)
+                                Rn > 0.0f0 && (Fn_sum_local += WITHIN_Rn * Fn(θ_ij, Rn²))
                             end #for j
                         end #if VALID_IDX
                         @synchronize #Ensure all threads are done before the next load

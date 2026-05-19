@@ -8,7 +8,7 @@ function pack_particles!(bufs::SendRecvBuffers, lefts::CuVector{Particle}, right
     n_left == n_right == 0 && return left_count, right_count
 
     workgroup_size = 256
-    num_workgroups = 256
+    num_workgroups = 512
     total_num_threads = workgroup_size * num_workgroups
     kernel! = pack_particles_kernel!(CUDABackend())
 

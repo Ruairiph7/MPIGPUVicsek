@@ -7,7 +7,7 @@ function assign_cell_starts!(cells_data, cell_list_params)
 
     # Shift to 1-based exclusive prefix sum in cell_starts
     workgroup_size = 256
-    num_workgroups = 256
+    num_workgroups = 512
     total_num_threads = workgroup_size * num_workgroups
 
     kernel! = assign_cell_starts_kernel!(CUDABackend(), workgroup_size)

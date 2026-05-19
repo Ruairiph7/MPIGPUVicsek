@@ -95,7 +95,7 @@ function extract_ghosts!(bufs, particles, x_min_local, x_max_local, R_max, rank)
     n == 0 && return view(bufs.lefts, 1:0), view(bufs.rights, 1:0)
 
     workgroup_size = 256
-    num_workgroups = 256
+    num_workgroups = 512
     total_num_threads = workgroup_size * num_workgroups
     kernel! = extract_ghosts_kernel!(CUDABackend(), workgroup_size)
 

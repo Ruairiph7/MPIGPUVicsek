@@ -78,14 +78,14 @@ end #function
 
             # Get each thread's particle in this batch
             p_offset = batch_offset + local_tidx - Int32(1)
-            valid = p_offset < cell_count
+            VALID_IDX = p_offset < cell_count
             p_idx = cell_start + p_offset
-            p_i = valid ? sorted_particles[p_idx] : Particle(0.0f0, 0.0f0, 0.0f0, Int32(0))
+            p_i = VALID_IDX ? sorted_particles[p_idx] : Particle(0.0f0, 0.0f0, 0.0f0, Int32(0))
 
             # Load this thread's particle position and angle
             # (will only read later if valid so safe to load unconditionally)
-            x_i = valid ? p_i.x : 0.0f0
-            y_i = valid ? p_i.y : 0.0f0
+            x_i = p_i.x
+            y_i = p_i.y
 
             F_sum_local = 0.0f0
             Fn_sum_local = 0.0f0
@@ -116,7 +116,7 @@ end #function
                         @synchronize #Ensure tile is fully loaded before any thread reads it
 
                         #If the thread corresponds to a valid particle, find its interactions with this tile
-                        if valid
+                        if VALID_IDX
                             for j in Int32(1):this_tile_size
                                 p_j = shared_tile[j]
                                 Δx = x_i - p_j.x
@@ -124,17 +124,16 @@ end #function
                                 Δx -= Lx * round(Δx / Lx)
                                 Δy -= Ly * round(Δy / Ly)
                                 Δr² = Δx * Δx + Δy * Δy
-                                if Δr² < R²
-                                    θ_ij = p_j.θ - p_i.θ
-                                    F_sum_local += F(θ_ij, R²)
-                                    n_local += 1.0f0
-                                end #if
-                                if Δr² < Rn²
-                                    θ_ij = p_j.θ - p_i.θ
-                                    Fn_sum_local += Fn(θ_ij, Rn²)
-                                end #if
+                                θ_ij = p_j.θ - p_i.θ
+
+                                WITHIN_R = Float32(Δr² < R²)
+                                WITHIN_Rn = Float32(Δr² < Rn²)
+
+                                F_sum_local += WITHIN_R * F(θ_ij, R²)
+                                n_local += WITHIN_R
+                                Fn_sum_local += WITHIN_Rn * Fn(θ_ij, Rn²)
                             end #for j
-                        end #if valid
+                        end #if VALID_IDX
                         @synchronize #Ensure all threads are done before the next load
 
                         tile_offset += Int32(128)
@@ -143,12 +142,12 @@ end #function
             end #for nghbr
 
             # Each entry written by exactly one thread in exactly one batch — no atomics needed
-            if valid
+            if VALID_IDX
                 polar_term = n_local > 0.0f0 ? γ * F_sum_local * dt / n_local : 0.0f0
                 θ_updates[perm[p_idx]] = polar_term + γn * Fn_sum_local * dt
             end #if
 
             batch_offset += Int32(128)
         end #while batch_offset
-    end #if group_idx
+    end #if GROUP_ACTIVE
 end #function

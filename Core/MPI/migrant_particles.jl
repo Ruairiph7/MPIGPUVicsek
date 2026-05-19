@@ -31,7 +31,7 @@ end
 function sort_migrants!(bufs, particles, x_min_local, x_max_local, R_max)
     n = length(particles)
     if n == 0
-        return (CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0))
+        return (CuVector{Particle}(undef, 0), CuVector{Particle}(undef, 0), CuVector{Particle}(undef, 0))
     end
 
     bufs.counters .= Int32(0)
@@ -57,7 +57,7 @@ function exchange_migrants!(mpi_bufs, local_particles, migrant_bufs, numerical_p
 
     # --- If only a single GPU, all particles are stayers ---
     if SINGLE_RANK
-        return local_particles, CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0)
+        return local_particles, CuVector{Particle}(undef, 0), CuVector{Particle}(undef, 0)
     end #if SINGLE_RANK
 
     # --- Otherwise: ---

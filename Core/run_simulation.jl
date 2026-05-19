@@ -166,7 +166,7 @@ function run_simulation(N_total, max_steps;
             println("Rank " * string(rank) * ": Rasing max_particles_per_rank to " * string(max_particles_per_rank))
 
             local_particles_cpu = Array(local_particles) #Store local particles
-            particles = CuArray{Particle}(undef, max_particles_per_rank) #Reallocate particles
+            particles = CuVector{Particle}(undef, max_particles_per_rank) #Reallocate particles
             particles[1:num_local_particles] .= CuArray(local_particles_cpu) #Retrieve local particles
             local_particles = view(particles, 1:num_local_particles) #Reset local_particles
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
@@ -179,7 +179,7 @@ function run_simulation(N_total, max_steps;
             println("Rank " * string(rank) * ": Lowering max_particles_per_rank to " * string(max_particles_per_rank))
 
             local_particles_cpu = Array(local_particles) #Store local particles
-            particles = CuArray{Particle}(undef, max_particles_per_rank) #Reallocate particles
+            particles = CuVector{Particle}(undef, max_particles_per_rank) #Reallocate particles
             particles[1:num_local_particles] .= CuArray(local_particles_cpu) #Retrieve local particles
             local_particles = view(particles, 1:num_local_particles) #Reset local_particles
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
@@ -233,7 +233,7 @@ function run_simulation(N_total, max_steps;
         if num_local_particles > max_particles_per_rank
             max_particles_per_rank = ceil(Int32, num_local_particles * 1.1) #Raise maximum
             println("Rank " * string(rank) * ": Rasing max_particles_per_rank to " * string(max_particles_per_rank))
-            particles = CuArray{Particle}(undef, max_particles_per_rank) #Reallocate particles
+            particles = CuVector{Particle}(undef, max_particles_per_rank) #Reallocate particles
             θ_updates = initialise_θ_updates(max_particles_per_rank) #Reinitialise θ_updates
             rand_bufs = initialise_rand_bufs(max_particles_per_rank) #Reinitialse rand_bufs
             cells_data = CellList(cell_list_params, max_particles_per_rank) #Reintialise cells_data

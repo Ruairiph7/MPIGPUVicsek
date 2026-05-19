@@ -22,7 +22,7 @@ end #function
 function extract_ghosts!(bufs, particles, x_min_local, x_max_local, R_max)
     n = length(particles)
     if n == 0
-        return (CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0))
+        return (CuVector{Particle}(undef, 0), CuVector{Particle}(undef, 0))
     end
 
     bufs.counters .= Int32(0)
@@ -50,7 +50,7 @@ function exchange_ghosts!(mpi_bufs, local_particles, ghost_bufs, numerical_param
 
     # --- If only a single GPU, no ghost exchange needed ---
     if SINGLE_RANK
-        return CuArray{Particle}(undef, 0), CuArray{Particle}(undef, 0)
+        return CuVector{Particle}(undef, 0), CuVector{Particle}(undef, 0)
     end #if SINGLE_RANK
 
     # --- Otherwise: ---

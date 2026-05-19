@@ -53,7 +53,7 @@ end #struct
 
 CellList(cell_list_params::CellListParams, N) = CellList(
     CUDA.zeros(Int32, N),
-    CuArray{Particle}(undef, N),
+    CuVector{Particle}(undef, N),
     CUDA.zeros(Int32, N),
     CUDA.zeros(Int32, cell_list_params.num_cells),
     CUDA.zeros(Int32, cell_list_params.num_cells),

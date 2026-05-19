@@ -16,7 +16,7 @@
     end #for i
 end
 
-function pack_particles!(bufs::SendRecvBuffers, lefts::CuArray{Particle}, rights::CuArray{Particle}; GHOST_FLAG::Bool=false, Lx::Int32=Int32(0), rank::Int=0, nprocs::Int=0)
+function pack_particles!(bufs::SendRecvBuffers, lefts::CuVector{Particle}, rights::CuVector{Particle}; GHOST_FLAG::Bool=false, Lx::Int32=Int32(0), rank::Int=0, nprocs::Int=0)
     n_left = length(lefts)
     n_right = length(rights)
     left_count = Ref{Int32}(4 * n_left)

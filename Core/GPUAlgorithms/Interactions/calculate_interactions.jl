@@ -30,7 +30,7 @@ function calculate_interactions!(θ_updates, cells_data, cell_list_params, numer
         cells_data.cell_counts,
         cells_data.cell_neighbours,
         cells_data.occupied_cells,
-        cells_data.num_occupied
+        cells_data.num_occupied,
         numerical_params.Lx,
         numerical_params.Ly,
         numerical_params.R²,

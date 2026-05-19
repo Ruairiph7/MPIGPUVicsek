@@ -60,93 +60,93 @@ end #function
     local_tidx = Int32(@index(Local, Linear))
 
     # Exit immediately for workgroups beyond num_occupied
-    @uniform group_idx > num_occupied[] && return
+    if group_idx <= num_occupied[]
+        shared_tile = @localmem Particle 128
 
-    shared_tile = @localmem Particle 128
-
-    # Uniform values - same for all threads in workgrooup
-    @uniform cell_idx = occupied_cells[group_idx]
-    @uniform cell_start = cell_starts[cell_idx]
-    @uniform cell_count = cell_counts[cell_idx]
-
-
-    # --------- Loop over batches --------- #
-    batch_offset = Int32(0)
-
-    while batch_offset < cell_count
-
-        # Get each thread's particle in this batch
-        p_offset = batch_offset + local_tidx - Int32(1)
-        valid = p_offset < cell_count
-        p_idx = cell_start + p_offset
-        p_i = valid ? sorted_particles[p_idx] : Particle(0.0f0, 0.0f0, 0.0f0, Int32(0))
-
-        # Load this thread's particle position and angle
-        # (will only read later if valid so safe to load unconditionally)
-        x_i = valid ? p_i.x : 0.0f0
-        y_i = valid ? p_i.y : 0.0f0
-
-        F_sum_local = 0.0f0
-        Fn_sum_local = 0.0f0
-        n_local = 0.0f0
+        # Uniform values - same for all threads in workgrooup
+        @uniform cell_idx = occupied_cells[group_idx]
+        @uniform cell_start = cell_starts[cell_idx]
+        @uniform cell_count = cell_counts[cell_idx]
 
 
-        # --------- Loop over neighbouring cells (including self) --------- #
-        for nghbr in Int32(1):Int32(9)
+        # --------- Loop over batches --------- #
+        batch_offset = Int32(0)
 
-            nghbr_idx = cell_neighbours[nghbr, cell_idx]
-            nghbr_start = cell_starts[nghbr_idx]
-            nghbr_count = cell_counts[nghbr_idx]
+        while batch_offset < cell_count
 
-            if nghbr_count > Int32(0)
+            # Get each thread's particle in this batch
+            p_offset = batch_offset + local_tidx - Int32(1)
+            valid = p_offset < cell_count
+            p_idx = cell_start + p_offset
+            p_i = valid ? sorted_particles[p_idx] : Particle(0.0f0, 0.0f0, 0.0f0, Int32(0))
 
-                # --------- Loop over tiles --------- #
-                tile_offset = Int32(0)
+            # Load this thread's particle position and angle
+            # (will only read later if valid so safe to load unconditionally)
+            x_i = valid ? p_i.x : 0.0f0
+            y_i = valid ? p_i.y : 0.0f0
 
-                while tile_offset < nghbr_count
+            F_sum_local = 0.0f0
+            Fn_sum_local = 0.0f0
+            n_local = 0.0f0
 
-                    #Fix tile size to 128, or number of remaining particles if < 128
-                    this_tile_size = min(Int32(128), nghbr_count - tile_offset)
 
-                    if local_tidx <= this_tile_size
-                        shared_tile[local_tidx] = sorted_particles[
-                            nghbr_start+tile_offset+local_tidx-Int32(1)]
-                    end #if local_tidx
-                    @synchronize #Ensure tile is fully loaded before any thread reads it
+            # --------- Loop over neighbouring cells (including self) --------- #
+            for nghbr in Int32(1):Int32(9)
 
-                    #If the thread corresponds to a valid particle, find its interactions with this tile
-                    if valid
-                        for j in Int32(1):this_tile_size
-                            p_j = shared_tile[j]
-                            Δx = x_i - p_j.x
-                            Δy = y_i - p_j.y
-                            Δx -= Lx * round(Δx / Lx)
-                            Δy -= Ly * round(Δy / Ly)
-                            Δr² = Δx * Δx + Δy * Δy
-                            if Δr² < R²
-                                θ_ij = p_j.θ - p_i.θ
-                                F_sum_local += F(θ_ij, R²)
-                                n_local += 1.0f0
-                            end #if
-                            if Δr² < Rn²
-                                θ_ij = p_j.θ - p_i.θ
-                                Fn_sum_local += Fn(θ_ij, Rn²)
-                            end #if
-                        end #for j
-                    end #if valid
-                    @synchronize #Ensure all threads are done before the next load
+                nghbr_idx = cell_neighbours[nghbr, cell_idx]
+                nghbr_start = cell_starts[nghbr_idx]
+                nghbr_count = cell_counts[nghbr_idx]
 
-                    tile_offset += Int32(128)
-                end #while tile_offset
-            end #if nghbr_count
-        end #for nghbr
+                if nghbr_count > Int32(0)
 
-        # Each entry written by exactly one thread in exactly one batch — no atomics needed
-        if valid
-            polar_term = n_local > 0.0f0 ? γ * F_sum_local * dt / n_local : 0.0f0
-            θ_updates[perm[p_idx]] = polar_term + γn * Fn_sum_local * dt
-        end #if
+                    # --------- Loop over tiles --------- #
+                    tile_offset = Int32(0)
 
-        batch_offset += Int32(128)
-    end #while batch_offset
+                    while tile_offset < nghbr_count
+
+                        #Fix tile size to 128, or number of remaining particles if < 128
+                        this_tile_size = min(Int32(128), nghbr_count - tile_offset)
+
+                        if local_tidx <= this_tile_size
+                            shared_tile[local_tidx] = sorted_particles[
+                                nghbr_start+tile_offset+local_tidx-Int32(1)]
+                        end #if local_tidx
+                        @synchronize #Ensure tile is fully loaded before any thread reads it
+
+                        #If the thread corresponds to a valid particle, find its interactions with this tile
+                        if valid
+                            for j in Int32(1):this_tile_size
+                                p_j = shared_tile[j]
+                                Δx = x_i - p_j.x
+                                Δy = y_i - p_j.y
+                                Δx -= Lx * round(Δx / Lx)
+                                Δy -= Ly * round(Δy / Ly)
+                                Δr² = Δx * Δx + Δy * Δy
+                                if Δr² < R²
+                                    θ_ij = p_j.θ - p_i.θ
+                                    F_sum_local += F(θ_ij, R²)
+                                    n_local += 1.0f0
+                                end #if
+                                if Δr² < Rn²
+                                    θ_ij = p_j.θ - p_i.θ
+                                    Fn_sum_local += Fn(θ_ij, Rn²)
+                                end #if
+                            end #for j
+                        end #if valid
+                        @synchronize #Ensure all threads are done before the next load
+
+                        tile_offset += Int32(128)
+                    end #while tile_offset
+                end #if nghbr_count
+            end #for nghbr
+
+            # Each entry written by exactly one thread in exactly one batch — no atomics needed
+            if valid
+                polar_term = n_local > 0.0f0 ? γ * F_sum_local * dt / n_local : 0.0f0
+                θ_updates[perm[p_idx]] = polar_term + γn * Fn_sum_local * dt
+            end #if
+
+            batch_offset += Int32(128)
+        end #while batch_offset
+    end #if group_idx
 end #function

@@ -8,8 +8,11 @@
 #   - workgroup_size = tile_size = 128, so all threads always participate in tile loading
 #   - Shared memory usage of tile_size * sizeof(Particle) = 128 * 16 = 2 KB per workgroup
 
+const inv_π32 = 0.31830987f0 #Hard code Float32(1/π)
+const π32 = 3.1415927f0 #Hard code Float32(π)
+
 @inline function F(θ::Float32, R²::Float32)
-    return sin(θ) / (Float32(π) * R²)
+    return sin(θ) / (π32 * R²)
 end #function
 
 function calculate_interactions!(θ_updates, cells_data, cell_list_params, numerical_params)

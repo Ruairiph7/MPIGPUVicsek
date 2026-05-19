@@ -55,7 +55,7 @@ function run_simulation(N_total, max_steps;
 
     #Store numerical parameters
     R² = R^2
-    inv_πR² = Float32(1.0f0/(π*R²))
+    inv_πR² = Float32(1.0f0 / (π * R²))
     numerical_params = (; N_total,
         dt, R, R², inv_πR², γ, λ, v,
         Lx, Ly, Lx_local,
@@ -248,17 +248,21 @@ function run_simulation(N_total, max_steps;
         # --------- Write outputs --------- #
 
         if save_coords
-            write_coords(time_step, local_particles, output_params, mpi_params)
+            write_coords(
+                time_step, local_particles,
+                output_params, mpi_params)
         end #if
 
-        if save_plots || save_OPs
-            save_plots_and_OPs(
-                time_step,
-                local_particles,
-                OP_m_file,
-                output_params,
-                numerical_params,
-                mpi_params)
+        if save_plots
+            save_plots(
+                time_step, local_particles,
+                output_params, numerical_params, mpi_params)
+        end #if
+
+        if save_OPs
+            save_OPs(
+                time_step, local_particles, OP_m_file,
+                output_params, numerical_params, mpi_params)
         end #if
 
         if rank == 0 && time_step % steps_to_new_OP_file == 0

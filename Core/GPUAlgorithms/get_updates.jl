@@ -15,6 +15,6 @@ function get_updates!(θ_updates, particles, cells_data, cell_list_params, num_p
 
     # --------- Store interactions in θ_updates --------- #
 
-    calculate_interactions!(θ_updates, cells_data, numerical_params)
+    calculate_interactions!(θ_updates, cells_data, cell_list_params, numerical_params)
 
 end #function

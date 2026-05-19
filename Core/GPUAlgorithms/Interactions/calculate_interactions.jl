@@ -16,12 +16,9 @@ end #function
     return sin(2 * θ) / (Float32(π) * R²)
 end #function
 
-function calculate_interactions!(θ_updates, cells_data, numerical_params)
-    # Need num_occupied on the CPU to launch the correct number of workgroups
-    num_occupied_cpu = Array(cells_data.num_occupied)[1]
-
-    workgroup_size = 128
-    num_workgroups = num_occupied_cpu
+function calculate_interactions!(θ_updates, cells_data, cell_list_params, numerical_params)
+    workgroup_size = Int32(128)
+    num_workgroups = cell_list_params.num_cells
     total_num_threads = workgroup_size * num_workgroups
 
     kernel! = calculate_interactions_kernel!(CUDABackend(), workgroup_size)
@@ -33,6 +30,7 @@ function calculate_interactions!(θ_updates, cells_data, numerical_params)
         cells_data.cell_counts,
         cells_data.cell_neighbours,
         cells_data.occupied_cells,
+        cells_data.num_occupied
         numerical_params.Lx,
         numerical_params.Ly,
         numerical_params.R²,
@@ -52,6 +50,7 @@ end #function
     @Const(cell_counts),
     @Const(cell_neighbours),
     @Const(occupied_cells),
+    @Const(num_occupied),
     Lx, Ly,
     R², Rn²,
     γ, γn,
@@ -59,6 +58,9 @@ end #function
 
     group_idx = Int32(@index(Group, Linear))
     local_tidx = Int32(@index(Local, Linear))
+
+    # Exit immediately for workgroups beyond num_occupied
+    @uniform group_idx > num_occupied[] && return
 
     shared_tile = @localmem Particle 128
 

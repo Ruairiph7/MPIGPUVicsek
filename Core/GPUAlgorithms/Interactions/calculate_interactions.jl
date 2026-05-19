@@ -60,7 +60,9 @@ end #function
     local_tidx = Int32(@index(Local, Linear))
 
     # Exit immediately for workgroups beyond num_occupied
-    if group_idx <= num_occupied[]
+    @uniform GROUP_ACTIVE = group_idx <= num_occupied[]
+    if GROUP_ACTIVE
+
         shared_tile = @localmem Particle 128
 
         # Uniform values - same for all threads in workgrooup

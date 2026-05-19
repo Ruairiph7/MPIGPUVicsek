@@ -49,8 +49,8 @@ end #function
     @Const(occupied_cells),
     @Const(num_occupied),
     Lx, Ly,
-    R², γ,
-    dt)
+    R², inv_R², 
+    γ, dt)
 
     group_idx = Int32(@index(Group, Linear))
     local_tidx = Int32(@index(Local, Linear))

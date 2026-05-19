@@ -13,7 +13,7 @@ function exchange_ghosts!(mpi_bufs, local_particles, ghost_bufs, numerical_param
         local_particles,
         numerical_params.x_min_local,
         numerical_params.x_max_local,
-        numerical_params.R_max,
+        numerical_params.R,
         rank)
 
     #2) Serialise ghosts to send over MPI, allocating extra space if required
@@ -90,7 +90,7 @@ end #function
 
 # --------- Extract particles to be sent as ghosts and store in local buffers --------- #
 
-function extract_ghosts!(bufs, particles, x_min_local, x_max_local, R_max, rank)
+function extract_ghosts!(bufs, particles, x_min_local, x_max_local, R, rank)
     n = length(particles)
     n == 0 && return view(bufs.lefts, 1:0), view(bufs.rights, 1:0)
 
@@ -108,7 +108,7 @@ function extract_ghosts!(bufs, particles, x_min_local, x_max_local, R_max, rank)
             bufs.overflow_flag, bufs.buf_lengths,
             particles, n,
             x_min_local, x_max_local,
-            R_max;
+            R;
             ndrange=total_num_threads)
         KernelAbstractions.synchronize(CUDABackend())
 
@@ -139,7 +139,7 @@ end #function
     overflow_flag, buf_lengths,
     @Const(particles), n,
     x_min_local, x_max_local,
-    R_max)
+    R)
 
     I = Int32(@index(Global, Linear))
     stride = Int32(@ndrange()[1])
@@ -147,14 +147,14 @@ end #function
     for i = I:stride:n
         p = particles[i]
         x = p.x
-        if x < x_min_local + R_max #Ghost to be sent left
+        if x < x_min_local + R #Ghost to be sent left
             idx = CUDA.atomic_add!(pointer(counters, 1), Int32(1))
             if idx <= buf_lengths
                 lefts[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
                 CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
             end #if idx
-        elseif x > x_max_local - R_max #Ghost to be sent right
+        elseif x > x_max_local - R #Ghost to be sent right
             idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
             if idx <= buf_lengths
                 rights[idx+1] = p

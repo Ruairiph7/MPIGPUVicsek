@@ -12,10 +12,6 @@
     return sin(θ) / (Float32(π) * R²)
 end #function
 
-@inline function Fn(θ::Float32, R²::Float32)
-    return sin(2 * θ) / (Float32(π) * R²)
-end #function
-
 function calculate_interactions!(θ_updates, cells_data, cell_list_params, numerical_params)
     workgroup_size = 128
     num_workgroups = cell_list_params.num_cells
@@ -34,9 +30,7 @@ function calculate_interactions!(θ_updates, cells_data, cell_list_params, numer
         numerical_params.Lx,
         numerical_params.Ly,
         numerical_params.R²,
-        numerical_params.Rn²,
         numerical_params.γ,
-        numerical_params.γn,
         numerical_params.dt;
         ndrange=total_num_threads)
     # KernelAbstractions.synchronize(CUDABackend())
@@ -52,15 +46,15 @@ end #function
     @Const(occupied_cells),
     @Const(num_occupied),
     Lx, Ly,
-    R², Rn²,
-    γ, γn,
+    R², γ,
     dt)
 
     group_idx = Int32(@index(Group, Linear))
     local_tidx = Int32(@index(Local, Linear))
 
     # Exit immediately for workgroups beyond num_occupied
-    @uniform GROUP_ACTIVE = group_idx <= num_occupied[]
+    @uniform max_group_idx = num_occupied[1]
+    @uniform GROUP_ACTIVE = group_idx <= max_group_idx
     if GROUP_ACTIVE
 
         shared_tile = @localmem Particle 128
@@ -86,9 +80,9 @@ end #function
             # (will only read later if valid so safe to load unconditionally)
             x_i = p_i.x
             y_i = p_i.y
+            θ_i = p_i.θ
 
             F_sum_local = 0.0f0
-            Fn_sum_local = 0.0f0
             n_local = 0.0f0
 
 
@@ -124,14 +118,11 @@ end #function
                                 Δx -= Lx * round(Δx / Lx)
                                 Δy -= Ly * round(Δy / Ly)
                                 Δr² = Δx * Δx + Δy * Δy
-                                θ_ij = p_j.θ - p_i.θ
+                                θ_ij = p_j.θ - θ_i
 
                                 WITHIN_R = Float32(Δr² < R²)
-                                WITHIN_Rn = Float32(Δr² < Rn²)
-
                                 F_sum_local += WITHIN_R * F(θ_ij, R²)
                                 n_local += WITHIN_R
-                                Fn_sum_local += WITHIN_Rn * Fn(θ_ij, Rn²)
                             end #for j
                         end #if VALID_IDX
                         @synchronize #Ensure all threads are done before the next load
@@ -143,8 +134,7 @@ end #function
 
             # Each entry written by exactly one thread in exactly one batch — no atomics needed
             if VALID_IDX
-                polar_term = n_local > 0.0f0 ? γ * F_sum_local * dt / n_local : 0.0f0
-                θ_updates[perm[p_idx]] = polar_term + γn * Fn_sum_local * dt
+                θ_updates[perm[p_idx]] = n_local > 0.0f0 ? γ * F_sum_local * dt / n_local : 0.0f0
             end #if
 
             batch_offset += Int32(128)

@@ -16,11 +16,11 @@ function CellListParams(numerical_params; SINGLE_RANK::Bool=false)
     x_min_local = numerical_params.x_min_local
     Lx_local = numerical_params.Lx_local
     Ly = numerical_params.Ly
-    R_max = numerical_params.R_max
-    extended_Lx_local = SINGLE_RANK ? Lx_local : Lx_local + 2 * R_max
+    R = numerical_params.R
+    extended_Lx_local = SINGLE_RANK ? Lx_local : Lx_local + 2 * R
 
-    num_cells_x = floor(Int32, max(1, extended_Lx_local / R_max))
-    num_cells_y = floor(Int32, max(1, Ly / R_max))
+    num_cells_x = floor(Int32, max(1, extended_Lx_local / R))
+    num_cells_y = floor(Int32, max(1, Ly / R))
 
     cell_size_x = Float32(extended_Lx_local / num_cells_x)
     cell_size_y = Float32(Ly / num_cells_y)
@@ -32,8 +32,8 @@ function CellListParams(numerical_params; SINGLE_RANK::Bool=false)
     num_cells >= typemax(Int32) && error("Too many cells to resolve with Int32")
 
     x_max_local = x_min_local + Lx_local
-    x_min_cells = SINGLE_RANK ? x_min_local : x_min_local - R_max
-    x_max_cells = SINGLE_RANK ? x_max_local : x_max_local + R_max
+    x_min_cells = SINGLE_RANK ? x_min_local : x_min_local - R
+    x_max_cells = SINGLE_RANK ? x_max_local : x_max_local + R
 
     return CellListParams(
         Float32(x_min_cells), Float32(x_max_cells),

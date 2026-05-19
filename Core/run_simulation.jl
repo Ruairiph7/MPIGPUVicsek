@@ -2,9 +2,7 @@ function run_simulation(N_total, max_steps;
     input_files::Union{Nothing,NTuple{3,String}}=nothing,
     dt::Float32=0.1f0,
     R::Float32=Float32(1 / sqrt(π)),
-    Rn::Float32=Float32(0),
     γ::Float32=0.5f0,
-    γn::Float32=0.0f0,
     λ::Float32=0.08f0,
     Lx::Int32=Int32(10),
     Ly::Int32=Lx,
@@ -57,11 +55,9 @@ function run_simulation(N_total, max_steps;
 
     #Store numerical parameters
     R² = R^2
-    Rn² = Rn^2
-    R_max = maximum((R, Rn))
     numerical_params = (; N_total,
-        dt, R, Rn, R², Rn², R_max,
-        γ, γn, λ, Lx, Ly, v, Lx_local,
+        dt, R, R², γ, λ, v,
+        Lx, Ly, Lx_local,
         x_min_local, x_max_local)
 
     #Store output parameters
@@ -77,7 +73,6 @@ function run_simulation(N_total, max_steps;
 
     #Open file if saving order parameter - will all be handled by rank 0
     OP_m_file = nothing
-    OP_S_file = nothing
     if rank == 0
         if save_plots
             plots_dir = "plots"
@@ -88,7 +83,6 @@ function run_simulation(N_total, max_steps;
             mkpath(OP_dir)
             OP_file_number = 1
             OP_m_file = open("$OP_dir/OP_m_$(file_name_addon)_1.txt", "w")
-            OP_S_file = open("$OP_dir/OP_S_$(file_name_addon)_1.txt", "w")
         end #if save_OPs
     end #if
 
@@ -261,7 +255,6 @@ function run_simulation(N_total, max_steps;
                 time_step,
                 local_particles,
                 OP_m_file,
-                OP_S_file,
                 output_params,
                 numerical_params,
                 mpi_params)
@@ -270,9 +263,7 @@ function run_simulation(N_total, max_steps;
         if rank == 0 && time_step % steps_to_new_OP_file == 0
             OP_file_number = OP_file_number + 1
             close(OP_m_file)
-            close(OP_S_file)
             OP_m_file = open(OP_dir * "OP_m_" * file_name_addon * "_$OP_file_number.txt", "w")
-            OP_S_file = open(OP_dir * "OP_S_" * file_name_addon * "_$OP_file_number.txt", "w")
         end #if time_step
 
         KernelAbstractions.synchronize(CUDABackend())
@@ -283,7 +274,6 @@ function run_simulation(N_total, max_steps;
     if rank == 0
         if save_OPs
             close(OP_m_file)
-            close(OP_S_file)
         end #if save_OPs
     end #if (rank == 0)
 

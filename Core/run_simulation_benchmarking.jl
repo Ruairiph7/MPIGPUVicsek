@@ -114,7 +114,7 @@ function run_simulation(N_total, max_steps;
     #Initialse MPI buffers
     ghost_bufs = GhostBuffers(max_sendrecv_particles)
     migrant_bufs = MigrantBuffers(max_particles_per_rank, max_sendrecv_particles)
-    sendrecv_bufs = SendRecvBuffers(sendrecv_buf_length)
+    sendrecv_bufs = SendRecvBuffers(max_sendrecv_particles)
 
     #Initialise array to store particles, the first num_local_particles entries corresponding to those in our local domain
     particles, num_local_particles = initialise_particles(

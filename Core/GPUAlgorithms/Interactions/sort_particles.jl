@@ -1,4 +1,4 @@
-# --------- Sort particles into sorted_particles ---------
+# --------- Sort particles into sorted_particles --------- #
 
 function sort_particles!(cells_data, particles, num_particles)
     # Reload cell_starts_scratch with cell starts; will increment elements atomically

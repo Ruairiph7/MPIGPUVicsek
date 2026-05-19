@@ -1,5 +1,3 @@
-# --------- Update particles ---------
-
 function update_particles!(particles, θ_updates, numerical_params, rand_bufs)
     num_particles = length(particles)
     CUDA.rand!(rand_bufs.rand1)
@@ -56,7 +54,7 @@ end #function
         end #if
 
         x_i = mod(x_i + dt * v * cos(θ_i), Lx)
-        y_i = mod(y_i + dt * v * sin(θ_i), Ly) 
+        y_i = mod(y_i + dt * v * sin(θ_i), Ly)
         θ_i = θ_i + this_θ_update
         particles[i] = Particle(x_i, y_i, θ_i, uid_i)
     end #for i

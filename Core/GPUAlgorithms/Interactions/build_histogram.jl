@@ -1,4 +1,4 @@
-# --------- Build histogram and track each particles cell index ---------
+# --------- Build histogram and track each particle's cell index --------- #
 
 function build_histogram!(cells_data, cell_list_params, particles, num_particles)
     fill!(cells_data.cell_counts, Int32(0))

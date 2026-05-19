@@ -1,6 +1,6 @@
 function get_updates!(θ_updates, particles, cells_data, cell_list_params, num_particles, numerical_params)
 
-    # --------- Create cell list data structures ---------    
+    # --------- Create cell list data structures --------- #
 
     #1) Build histogram - count particles per cell; 
     #   Also record each particle's cell index and track occupied cells
@@ -12,7 +12,8 @@ function get_updates!(θ_updates, particles, cells_data, cell_list_params, num_p
     #3) Sort particles
     sort_particles!(cells_data, particles, num_particles)
 
-    # --------- Store interactions in θ_updates ---------    
+
+    # --------- Store interactions in θ_updates --------- #
 
     calculate_interactions!(θ_updates, cells_data, numerical_params)
 

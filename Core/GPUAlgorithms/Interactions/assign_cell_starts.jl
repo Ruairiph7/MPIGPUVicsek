@@ -1,4 +1,4 @@
-# --------- Compute the cell_start for each cell via exclusive prefix sum ---------
+# --------- Compute the cell_start for each cell via exclusive prefix sum --------- #
 
 function assign_cell_starts!(cells_data, cell_list_params)
 

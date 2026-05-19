@@ -1,4 +1,4 @@
-# --------- Store interactions in θ_updates ---------
+# --------- Store interactions in θ_updates --------- #
 # NOTE: Tumbling comes later in the kernel for updating particles.
 
 # Assign a workgroup to each occupied cell, iterate in batches to assign
@@ -10,14 +10,13 @@
 
 @inline function F(θ::Float32, R²::Float32)
     return sin(θ) / (Float32(π) * R²)
-end
+end #function
 
 @inline function Fn(θ::Float32, R²::Float32)
     return sin(2 * θ) / (Float32(π) * R²)
-end
+end #function
 
 function calculate_interactions!(θ_updates, cells_data, numerical_params)
-
     # Need num_occupied on the CPU to launch the correct number of workgroups
     num_occupied_cpu = Array(cells_data.num_occupied)[1]
 
@@ -68,7 +67,8 @@ end #function
     @uniform cell_start = cell_starts[cell_idx]
     @uniform cell_count = cell_counts[cell_idx]
 
-    # --------- Loop over batches ---------
+
+    # --------- Loop over batches --------- #
     batch_offset = Int32(0)
 
     while batch_offset < cell_count
@@ -88,7 +88,8 @@ end #function
         Fn_sum_local = 0.0f0
         n_local = 0.0f0
 
-        # --------- Loop over neighbouring cells (including self) ---------
+
+        # --------- Loop over neighbouring cells (including self) --------- #
         for nghbr in Int32(1):Int32(9)
 
             nghbr_idx = cell_neighbours[nghbr, cell_idx]
@@ -97,6 +98,7 @@ end #function
 
             if nghbr_count > Int32(0)
 
+                # --------- Loop over tiles --------- #
                 tile_offset = Int32(0)
 
                 while tile_offset < nghbr_count

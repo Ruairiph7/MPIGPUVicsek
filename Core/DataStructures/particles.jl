@@ -1,16 +1,14 @@
-using StaticArrays
-using CUDA
-
-# --------- Data structures ---------
+# --------- Particle data structures --------- #
 
 struct Particle
     x::Float32
     y::Float32
     θ::Float32
-    uid::Int32 #"Unique id"
-end
+    uid::Int32 # "Unique id"
+end #struct
 
-# --------- Initialise structures for particle updates ---------
+
+# --------- Initialise structures for particle updates --------- #
 
 function initialise_θ_updates(N)
     return CUDA.zeros(Float32, N)
@@ -22,7 +20,8 @@ function initialise_rand_bufs(N)
     return (; rand1, rand2)
 end #function
 
-# --------- Initialise particles ---------
+
+# --------- Initialise particles --------- #
 
 function initialise_coords(N, Lx, Ly=Lx; input_files::Union{Nothing,NTuple{3,String}}=nothing)
     if isnothing(input_files)
@@ -36,7 +35,7 @@ function initialise_coords(N, Lx, Ly=Lx; input_files::Union{Nothing,NTuple{3,Str
         length(xs) != N && error("Wrong number of particles in x input file")
         length(ys) != N && error("Wrong number of particles in y input file")
         length(θs) != N && error("Wrong number of particles in theta input file")
-    end
+    end #if
     return xs, ys, θs
 end #function
 
@@ -55,7 +54,7 @@ function initialise_particles(max_particles_per_rank, input_files, numerical_par
     θs_all = Vector{Float32}(undef, N_total)
     if rank == 0
         xs_all, ys_all, θs_all = initialise_coords(N_total, Lx, Ly, input_files=input_files)
-    end
+    end #if
     MPI.Bcast!(xs_all, 0, comm)
     MPI.Bcast!(ys_all, 0, comm)
     MPI.Bcast!(θs_all, 0, comm)
@@ -90,7 +89,8 @@ function initialise_particles(max_particles_per_rank, input_files, numerical_par
     return CuArray(particles_cpu), num_local_particles
 end #function
 
-# --------- Unpack particles into coordinates ---------
+
+# --------- Unpack particles into coordinates --------- #
 
 function unpack_coords(particles_array::Array{Particle})
     xs = zeros(Float32, length(particles_array))

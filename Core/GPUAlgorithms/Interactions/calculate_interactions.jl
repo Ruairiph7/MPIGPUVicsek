@@ -17,7 +17,7 @@ end #function
 end #function
 
 function calculate_interactions!(θ_updates, cells_data, cell_list_params, numerical_params)
-    workgroup_size = Int32(128)
+    workgroup_size = 128
     num_workgroups = cell_list_params.num_cells
     total_num_threads = workgroup_size * num_workgroups
 

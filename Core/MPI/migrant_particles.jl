@@ -2,7 +2,13 @@
 # GPU Migrant detection
 # ------------------------------------------------------------
 
-@kernel function sort_migrants_kernel!(stayers, lefts, rights, counters, @Const(particles), x_min_local, x_max_local, R_max, n)
+@kernel function sort_migrants_kernel!(
+    stayers, lefts, rights, counters,
+    overflow_flag, max_num,
+    @Const(particles), n,
+    x_min_local, x_max_local,
+    R_max)
+
     I = Int32(@index(Global, Linear))
     stride = Int32(@ndrange()[1])
 
@@ -11,16 +17,32 @@
         x = p.x
         if x_min_local - R_max <= x < x_min_local #Particle is in the cell immediately to the left; moved to left domain
             idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
-            lefts[idx+1] = p
+            if idx <= max_num
+                lefts[idx+1] = p
+            else #No remaining space in buffers - raise overflow flag
+                CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
+            end #if idx
         elseif x < x_min_local - R_max #Particle has been wrapped round to the left; moved to "right" domain (PBCs)
             idx = CUDA.atomic_add!(pointer(counters, 3), Int32(1))
-            rights[idx+1] = p
-        elseif x_max_local + R_max >= x >= x_max_local #Particle is in the cell immediately to the right; moved to right domain
+            if idx <= max_num
+                rights[idx+1] = p
+            else #No remaining space in buffers - raise overflow flag
+                CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
+            end #if idx
+        elseif x_max_local + R_max >= x > x_max_local #Particle is in the cell immediately to the right; moved to right domain
             idx = CUDA.atomic_add!(pointer(counters, 3), Int32(1))
-            rights[idx+1] = p
+            if idx <= max_num
+                rights[idx+1] = p
+            else #No remaining space in buffers - raise overflow flag
+                CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
+            end #if idx
         elseif x > x_max_local + R_max #Particle has been wrapped round to the right; moved to "left" domain (PBCs)
             idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
-            lefts[idx+1] = p
+            if idx <= max_num
+                lefts[idx+1] = p
+            else #No remaining space in buffers - raise overflow flag
+                CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
+            end #if idx
         else #Particle has remained in this domain
             idx = CUDA.atomic_add!(pointer(counters, 1), Int32(1))
             stayers[idx+1] = p
@@ -28,27 +50,50 @@
     end #for i
 end
 
-function sort_migrants!(bufs, particles, x_min_local, x_max_local, R_max)
+function sort_migrants!(bufs, particles, x_min_local, x_max_local, R_max, rank)
     n = length(particles)
-    if n == 0
-        return (CuVector{Particle}(undef, 0), CuVector{Particle}(undef, 0), CuVector{Particle}(undef, 0))
-    end
-
-    bufs.counters .= Int32(0)
+    n == 0 && return view(bufs.stayers, 1:0), view(bufs.lefts, 1:0), view(bufs.rights, 1:0)
 
     workgroup_size = 256
     num_workgroups = 256
     total_num_threads = workgroup_size * num_workgroups
-
     kernel! = sort_migrants_kernel!(CUDABackend())
-    kernel!(bufs.stayers, bufs.lefts, bufs.rights, bufs.counters, particles, x_min_local, x_max_local, R_max, n; ndrange=total_num_threads)
-    KernelAbstractions.synchronize(CUDABackend())
 
-    counters_cpu = Array(bufs.counters)
-    n_stay, n_left, n_right = counters_cpu
+    for attempt in 1:2
+        fill!(bufs.counters, Int32(0))
+        fill!(bufs.overflow_flag, Int32(0))
 
-    return @view(bufs.stayers[1:n_stay]), @view(bufs.lefts[1:n_left]), @view(bufs.rights[1:n_right])
-end
+        kernel!(
+            bufs.stayers, bufs.lefts, bufs.rights, bufs.counters,
+            bufs.overflow_flag, bufs.max_num,
+            particles, n,
+            x_min_local, x_max_local,
+            R_max;
+            ndrange=total_num_threads)
+        KernelAbstractions.synchronize(CUDABackend())
+
+        counters_cpu = Array(bufs.counters)
+        overflowed = Array(bufs.overflow_flag)[1] != Int32(0)
+
+        if !overflowed
+            return (
+                view(bufs.stayers, 1:counters_cpu[1]),
+                view(bufs.lefts, 1:counters_cpu[2]),
+                view(bufs.rights, 1:counters_cpu[3])
+            )
+        end #if
+        attempt == 2 && error("sort_migrants!: Still overflows on second attempt.")
+
+        # Resize buffers
+        max_count = maximum(counters_cpu[2], counters_cpu[3])
+        new_buf_size = ceil(Int32, max_count * 1.5f0)
+        bufs.lefts = CuVector{Particle}(undef, new_buf_size)
+        bufs.rights = CuVector{Particle}(undef, new_buf_size)
+        bufs.max_num = new_buf_size
+        println("Rank $rank raising migrant buffer size to $new_buf_size")
+
+    end #for attempt
+end #function
 
 # ------------------------------------------------------------
 # Migration exchange between ranks
@@ -71,12 +116,15 @@ function exchange_migrants!(mpi_bufs, local_particles, migrant_bufs, numerical_p
         local_particles,
         numerical_params.x_min_local,
         numerical_params.x_max_local,
-        numerical_params.R_max)
+        numerical_params.R_max,
+        rank)
 
     # 2. Serialize migrants
-    send_left_count, send_right_count = pack_particles!(mpi_bufs, migrants_left_view, migrants_right_view)
-    @assert send_left_count < mpi_bufs.buf_lengths "Too many migrants"
-    @assert send_right_count < mpi_bufs.buf_lengths "Too many migrants"
+    ensure_send_capacity!(mpi_bufs, ghost_bufs.max_num, mpi_params.rank)
+    send_left_count, send_right_count = pack_particles!(
+        mpi_bufs,
+        migrants_left_view,
+        migrants_right_view)
 
     send_left_buf = view(mpi_bufs.send_left_buf, 1:getindex(send_left_count))
     send_right_buf = view(mpi_bufs.send_right_buf, 1:getindex(send_right_count))
@@ -106,6 +154,11 @@ function exchange_migrants!(mpi_bufs, local_particles, migrant_bufs, numerical_p
         recvtag=migrant_count_right_tag)
 
     # 4. Allocate recv buffers on GPU
+    ensure_recv_capacity!(
+        mpi_bufs,
+        getindex(recv_left_count),
+        getindex(recv_right_count),
+        mpi_params.rank)
     recv_left_buf = view(mpi_bufs.recv_left_buf, 1:getindex(recv_left_count))
     recv_right_buf = view(mpi_bufs.recv_right_buf, 1:getindex(recv_right_count))
 

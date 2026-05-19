@@ -1,7 +1,3 @@
-#NOTE:
-#TODO:
-#WARN: Fix need to make whole new files to change max_particles_in_cell --> make it assigned by building the kernels within this function
-
 # --------- Perform simulation ---------
 
 function run_simulation(N_total, max_steps;
@@ -17,7 +13,6 @@ function run_simulation(N_total, max_steps;
     v::Float32=Float32(1 / sqrt(π)),
     max_particles_per_rank::Union{Int32,Nothing}=nothing,
     max_sendrecv_particles::Union{Int32,Nothing}=nothing,
-    max_particles_in_cell::Int=512,
     steps_to_shrink_buffers=maximum((max_steps ÷ 10, 100000)),
     save_OPs=true,
     save_plots=true,
@@ -90,12 +85,9 @@ function run_simulation(N_total, max_steps;
 
     #Set max_sendrecv_particles - i.e. maximum ghosts/migrants in a given direction
     if isnothing(max_sendrecv_particles)
-        max_sendrecv_particles = ceil(Int32, max_particles_in_cell * cell_list_params.num_cells_y)
+        max_sendrecv_particles = maximum(ceil(Int32, 2 * R_max * N_total / Lx), Int32(1000))
         rank == 0 && @show max_sendrecv_particles
     end #if isnothing()
-    sendrecv_buf_length = 4 * max_sendrecv_particles #(Buffers are serialised)
-    @warn "max_sendrecv_particles could cause issues ---investigate."
-    #WARN: May choose to remove max_particles_in_cell as an argument, so max_sendrecv_particles will need to be set differently. Check whether this can cause out of bounds errors (previously max_particles_in_cell would have been exceeded first), and find how to solve.
 
     #Initialse buffers to track ghost and migrant particles
     ghost_bufs = GhostBuffers(max_sendrecv_particles)

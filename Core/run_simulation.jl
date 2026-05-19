@@ -25,6 +25,7 @@ function run_simulation(N_total, max_steps;
 )
 
     # --------- Prepare for MPI --------- #
+
     comm = MPI.COMM_WORLD
     rank = MPI.Comm_rank(comm)
     nprocs = MPI.Comm_size(comm)

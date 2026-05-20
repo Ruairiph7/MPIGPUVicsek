@@ -132,7 +132,8 @@ function run_simulation(N_total, max_steps;
 
     #Initialise cell lists
     cell_list_params = CellListParams(numerical_params, SINGLE_RANK=SINGLE_RANK)
-    cells_data = CellList(cell_list_params, max_particles_per_rank)
+    rm2h, h2rm = compute_hilbert_ordering(cell_list_params.num_cells_x, cell_list_params.num_cells_y)
+    cells_data = CellList(cell_list_params, rm2h, h2rm, max_particles_per_rank)
 
     #Initialse MPI buffers
     ghost_bufs = GhostBuffers(max_sendrecv_particles)

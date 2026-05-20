@@ -56,51 +56,60 @@ struct CellList
     cell_starts::CuVector{Int32} #First index in sorted particles for cell c
     cell_starts_scratch::CuVector{Int32} #Copy of cell_starts, used during sorting
 
+    row_major_to_hilbert::CuVector{Int32} #Look-up table to map from row-major to hilbert indices
+
     occupied_cells::CuVector{Int32} #Indices of non-empty cells; length == num_cells
     num_occupied::CuVector{Int32} #Scalar counter; length == 1
 
     cell_neighbours::CuArray{Int32,2}   # size == (9, ncells)
 end #struct
 
-CellList(cell_list_params::CellListParams, N) = CellList(
+CellList(cell_list_params::CellListParams, rm2h, h2rm, N) = CellList(
     CUDA.zeros(Int32, N),
     CuVector{Particle}(undef, N),
     CUDA.zeros(Int32, N),
     CUDA.zeros(Int32, cell_list_params.num_cells),
     CUDA.zeros(Int32, cell_list_params.num_cells),
     CUDA.zeros(Int32, cell_list_params.num_cells),
+    CuArray(rm2h),
     CUDA.zeros(Int32, cell_list_params.num_cells),
     CUDA.zeros(Int32, 1),
-    initialise_cell_neighbours(cell_list_params)
+    initialise_cell_neighbours(cell_list_params, rm2h, h2rm)
 )
 
 # --------- Cell List Functions --------- #
 
-function initialise_cell_neighbours(cell_list_params::CellListParams)
+function initialise_cell_neighbours(cell_list_params::CellListParams, rm2h, h2rm)
     nx = cell_list_params.num_cells_x
     ny = cell_list_params.num_cells_y
     n = cell_list_params.num_cells
     cell_neighbours = zeros(Int32, 9, n)
-    for yidx in Int32(1):ny
-        for xidx in Int32(1):nx
-            cell = xidx + nx * (yidx - Int32(1))
-            nghbr = Int32(1)
-            for Δy in -Int32(1):Int32(1)
-                for Δx in -Int32(1):Int32(1)
-                    nghbr_xidx = mod1(xidx + Δx, nx)
-                    nghbr_yidx = mod1(yidx + Δy, ny)
-                    cell_neighbours[nghbr, cell] = nghbr_xidx + nx * (nghbr_yidx - Int32(1))
-                    nghbr += 1
-                end #for Δx
-            end #for Δy
-        end #for xidx
-    end #for yidx
+
+    for h_idx in 1:n
+        rm_idx = h2rm[h_idx] - 1
+        cx = Int32(rm_idx % nx)
+        cy = Int32(rm_idx ÷ nx)
+
+        nghbr = Int32(1)
+        for Δy in -Int32(1):Int32(1)
+            for Δx in -Int32(1):Int32(1)
+                nghbr_xidx = mod(cx + Δx, nx)
+                nghbr_yidx = mod(cy + Δy, ny)
+                nghbr_rm = 1 + nghbr_xidx + nghbr_yidx * nx
+                cell_neighbours[nghbr, h_idx] = rm2h[nghbr_rm]
+                nghbr += 1
+            end #for Δx
+        end #for Δy
+    end #for h_idx
+
     return CuArray(cell_neighbours)
 end #function
 
-@inline function get_cell_ID(x, y, x_min_cells, num_cells_x, num_cells_y, inv_cell_size_x, inv_cell_size_y)
+@inline function get_cell_ID(x, y, x_min_cells, num_cells_x, num_cells_y, inv_cell_size_x, inv_cell_size_y, rm2h)
     #Assume particle is inside cell list domain (so ghosts must be correctly wrapped already)
     x_idx = clamp(Int32(floor((x - x_min_cells) * inv_cell_size_x)), Int32(0), num_cells_x - Int32(1))
     y_idx = clamp(Int32(floor(y * inv_cell_size_y)), Int32(0), num_cells_y - Int32(1))
-    return Int32(1) + x_idx + num_cells_x * y_idx #1-based
+    rm_idx = Int32(1) + x_idx + num_cells_x * y_idx #1-based
+
+    return rm2h[rm_idx]
 end #function

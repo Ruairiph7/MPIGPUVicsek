@@ -9,12 +9,13 @@ function _save_coords(time_step, particles, num_particles,
                 "_rank_$(lpad(mpi_params.rank, 10, "0")).jld2"
 
     if save_bufs.ASYNC_SAVES
-        # Wait for previous save to finish if it is still running
+        #Wait for previous save to finish if it is still running
         if !isnothing(save_bufs.save_task)
             t_wait = @elapsed wait(save_bufs.save_task)
             t_wait > 0.01 && println("Rank $(mpi_params.rank): waited $(round(t_wait, digits=3))s for previous save")
         end #if
 
+        #Launch saving from the buffer to file asynchronousy on a background thread.
         main_thread_id = Threads.threadid()
         save_bufs.save_task = Threads.@spawn begin
             write_thread_id = Threads.threadid()

@@ -3,9 +3,11 @@ function _save_OPs(time_step, particles, OP_file,
 
     local_cos, local_sin, local_count = compute_local_OP_sums(particles)
 
-    global_cos = MPI.Allreduce(local_cos, +, mpi_params.comm)
-    global_sin = MPI.Allreduce(local_sin, +, mpi_params.comm)
-    global_count = MPI.Allreduce(local_count, +, mpi_params.comm)
+    #Combine into one array for reduced MPI latency
+    #Store as Float64 to reduce errors when summing many values
+    local_sums = Float64[local_cos, local_sin, local_count]
+    global_sums = MPI.Allreduce(local_sums, +, mpi_params.comm)
+    global_cos, global_sin, global_count = global_sums
 
     if mpi_params.rank == 0
         magnetisation = sqrt(global_cos^2 + global_sin^2) / global_count
@@ -16,7 +18,7 @@ function _save_OPs(time_step, particles, OP_file,
 end #function
 
 
-# --------- Compute sums of sin() and cos() local particle θs on GPU --------- #
+# --------- Compute sums of sin() and cos() of local particle θs on GPU --------- #
 
 function compute_local_OP_sums(particles)
     num_particles = length(particles)

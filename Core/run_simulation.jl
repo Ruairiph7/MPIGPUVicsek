@@ -18,6 +18,8 @@ function run_simulation(N_total, max_steps;
     steps_to_save_coords=10,
     steps_to_new_OP_file::Int=500000,
     file_name_addon::String="",
+    OP_dir::String="magnetisations",
+    plots_dir::String="plots",
     markersize=0.5,
     steps_to_log=maximum((max_steps ÷ 10, 1)),
     ASYNC_SAVES::Union{Bool,Nothing}=nothing
@@ -86,6 +88,8 @@ function run_simulation(N_total, max_steps;
         steps_to_save_coords,
         steps_to_new_OP_file,
         file_name_addon,
+        OP_dir,
+        plots_dir,
         markersize)
 
     #Set max_particles_per_rank
@@ -107,11 +111,9 @@ function run_simulation(N_total, max_steps;
     OP_file = nothing
     if rank == 0
         if save_plots
-            plots_dir = "plots"
             mkpath(plots_dir)
         end #if save_snapshots
         if save_OPs
-            OP_dir = "magnetisations"
             mkpath(OP_dir)
             OP_file_number = 1
             OP_file = open("$OP_dir/ms_$(file_name_addon)_$(lpad(OP_file_number,6,"0")).txt", "w")

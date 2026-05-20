@@ -20,6 +20,7 @@ function run_simulation(N_total, max_steps;
     file_name_addon::String="",
     markersize=0.5,
     steps_to_log=maximum((max_steps ÷ 10, 1)),
+    ASYNC_SAVES::Union{Bool,Nothing}=nothing
 )
 
     # --------- Prepare for MPI --------- #
@@ -103,7 +104,11 @@ function run_simulation(N_total, max_steps;
     end #if
 
     #Struct to aid in transferring/writing particles to disk
-    save_bufs = SaveBuffers(max_particles_per_rank)
+    if isnothing(ASYNC_SAVES) 
+        ASYNC_SAVES = Threads.nthreads() > 1
+    end #if
+    ASYNC_SAVES && println("Rank $(mpi_params.rank): Enabling asynchronous saving of coordinates")
+    save_bufs = SaveBuffers(max_particles_per_rank, ASYNC_SAVES=ASYNC_SAVES)
 
     # --------- Initialise data structures --------- #
 

@@ -5,9 +5,8 @@ mutable struct SaveBuffers
     save_task::Union{Nothing,Task} #Track whether asynchronous write has completed
 end #struct
 
-function SaveBuffers(max_particles)
+function SaveBuffers(max_particles; ASYNC_SAVES=false)
     pinned_buf = CUDA.pin(Vector{Particle}(undef, max_particles))
-    ASYNC_SAVES = Threads.nthreads() > 1
     save_task = nothing
     return SaveBuffers(pinned_buf, ASYNC_SAVES, save_task)
 end #function

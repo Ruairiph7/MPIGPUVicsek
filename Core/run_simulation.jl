@@ -107,7 +107,7 @@ function run_simulation(N_total, max_steps;
     if isnothing(ASYNC_SAVES) 
         ASYNC_SAVES = Threads.nthreads() > 1
     end #if
-    ASYNC_SAVES && println("Rank $(mpi_params.rank): Enabling asynchronous saving of coordinates")
+    println("Rank $(mpi_params.rank): Asynchronous saving set to '$ASYNC_SAVES'")
     save_bufs = SaveBuffers(max_particles_per_rank, ASYNC_SAVES=ASYNC_SAVES)
 
     # --------- Initialise data structures --------- #

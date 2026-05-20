@@ -46,6 +46,21 @@ function run_simulation(N_total, max_steps;
         max_sendrecv_particles = 0
     end #if
 
+    # Report configuration from each rank
+    for r in 0:nprocs-1
+        if rank == r
+            CPU_affinity = chomp(read(`taskset -cp $(getpid())`, String))
+            CPU_affinity = CPU_affinity[findfirst(==(':'), CPU_affinity)+2:end]
+            println("""
+                    Rank $rank/$nprocs:
+                    GPU:           $(CUDA.name(CUDA.device())) (device $local_rank)
+                    Julia threads: $(Threads.nthreads())
+                    CPU affinity:  $(CPU_affinity)
+                    """)
+            flush(stdout)
+        end
+        MPI.Barrier(comm)
+    end
 
     # --------- Store parameters --------- #
 
@@ -303,7 +318,7 @@ function run_simulation(N_total, max_steps;
     if save_bufs.ASYNC_SAVES && !isnothing(save_bufs.save_task)
         wait(save_bufs.save_task)
     end #if
-    save_bufs.pinned_buf = Vector{Particle}(undef,0) #Drop reference to pinned buffer
+    save_bufs.pinned_buf = Vector{Particle}(undef, 0) #Drop reference to pinned buffer
     GC.gc() #Encourage GC to collect old pinned buffer
 
     MPI.Barrier(comm)

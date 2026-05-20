@@ -13,8 +13,6 @@ function _save_coords(time_step, particles, num_particles, save_bufs, output_par
             t_wait = @elapsed wait(save_bufs.save_task)
             t_wait > 0.01 && println("Rank $(mpi_params.rank): Waited $(round(t_wait, digits=3))s for previous save")
         end #if
-        t_transfer = @elapsed copyto!(save_bufs.pinned_buf, 1, particles, 1, num_particles)
-        t_transfer_old = @elapsed tmp_array = Array(particles)
 
         main_thread_id = Threads.threadid()
         save_bufs.save_task = Threads.@spawn begin
@@ -25,10 +23,10 @@ function _save_coords(time_step, particles, num_particles, save_bufs, output_par
             t_write = @elapsed @save file_name particles = save_bufs.pinned_buf[1:num_particles]
             println("Rank $(mpi_params.rank): backround write took $(round(t_write, digits=3))s")
         end #begin
-        println("Rank $(mpi_params.rank): transfer took $(round(t_transfer, digits=3))s, old took $(round(t_transfer_old, digits=3))s")
     else
         copyto!(save_bufs.pinned_buf, 1, particles, 1, num_particles)
-        @save file_name particles = save_bufs.pinned_buf[1:num_particles]
+        t_write = @elapsed @save file_name particles = save_bufs.pinned_buf[1:num_particles]
+        println("Rank $(mpi_params.rank): Write took $(round(t_write, digits=3))s")
     end #if
 
     return nothing

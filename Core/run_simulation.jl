@@ -140,6 +140,7 @@ function run_simulation(N_total, max_steps;
 
     # --------- Perform simulation --------- #
 
+    rank == 0 && println("Starting simulation...")
     for time_step = 1:max_steps
 
         if rank == 0 && time_step % steps_to_log == 0
@@ -302,7 +303,7 @@ function run_simulation(N_total, max_steps;
     if save_bufs.ASYNC_SAVES && !isnothing(save_bufs.save_task)
         wait(save_bufs.save_task)
     end #if
-    save_bufs.pinned_buf = Vector{Particles}(undef,0) #Drop reference to pinned buffer
+    save_bufs.pinned_buf = Vector{Particle}(undef,0) #Drop reference to pinned buffer
     GC.gc() #Encourage GC to collect old pinned buffer
 
     MPI.Barrier(comm)

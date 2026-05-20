@@ -21,7 +21,7 @@ function initialise_rand_bufs(N)
 end #function
 
 
-# --------- Initialise particles --------- #
+# --------- Initialise particles from scratch or from txt files --------- #
 
 function initialise_coords(N, Lx, Ly=Lx; input_files::Union{Nothing,NTuple{3,String}}=nothing)
     if isnothing(input_files)
@@ -29,6 +29,7 @@ function initialise_coords(N, Lx, Ly=Lx; input_files::Union{Nothing,NTuple{3,Str
         ys = [Ly * rand(Float32) for i in 1:N]
         θs = [Float32(2π * rand()) for i = 1:N]
     else
+        # Assume input_files=("input_xs.txt","input_ys.txt","input_thetas.txt")
         xs = Float32.(vec(readdlm(input_files[1])))
         ys = Float32.(vec(readdlm(input_files[2])))
         θs = Float32.(vec(readdlm(input_files[3])))
@@ -60,9 +61,7 @@ function initialise_particles(max_particles_per_rank, input_files, numerical_par
     MPI.Bcast!(θs_all, 0, comm)
 
     # Get particles in local domain
-    function in_local_domain(x)
-        return x_min_local <= x < x_max_local
-    end #function
+    in_local_domain(x) = (x_min_local <= x < x_max_local)
     local_particle_idxs = findall(in_local_domain, xs_all)
     xs_filtered = xs_all[local_particle_idxs]
     ys_filtered = ys_all[local_particle_idxs]
@@ -77,17 +76,61 @@ function initialise_particles(max_particles_per_rank, input_files, numerical_par
         Particle(x, y, θ, Int32(N_offset + i))
         for (i, (x, y, θ)) in enumerate(zip(xs_filtered, ys_filtered, θs_filtered))
     ]
-
-    # Initialise particles array on CPU, using the first num_local_particles entries for the ones in our domain
     num_local_particles = length(local_particles_cpu)
     num_local_particles > max_particles_per_rank && error("Too many particles on rank " * string(rank))
 
-    particles_cpu = Vector{Particle}(undef, max_particles_per_rank)
-    particles_cpu[1:num_local_particles] .= local_particles_cpu
+    # Upload particles to GPU
+    particles_gpu = CuArray{Particle}(undef, max_particles_per_rank)
+    copyto!(particles_gpu, 1, CuArray(local_particles_cpu), 1, num_local_particles)
 
-    # Load onto the GPU and return with num_local_particles
-    return CuArray(particles_cpu), num_local_particles
+    return particles_gpu, num_local_particles
 end #function
+
+
+# --------- Load particles from simulation outputs --------- #
+
+#The directory inputs_dir should contain the set of jld2 files for each rank from a single timestep
+function load_particles(max_particles_per_rank, inputs_dir, numerical_params, mpi_params)
+    N_total = numerical_params.N_total
+    x_min_local = numerical_params.x_min_local
+    x_max_local = numerical_params.x_max_local
+    Lx = numerical_params.Lx
+    Ly = numerical_params.Ly
+    rank = mpi_params.rank
+    comm = mpi_params.comm
+    nprocs = mpi_params.nprocs
+
+    #Load particles from files
+    all_files = readdir(inputs_dir, join=true)
+    if rank == 0
+        length(all_files) != nprocs && error("Mismatch in number of ranks")
+    end #if rank
+    MPI.Barrier(comm)
+
+    local_file = all_files[rank+1]
+    local_dict = load(local_file)
+    local_particles_cpu = local_dict["particles"]
+    num_local_particles = length(local_particles_cpu)
+
+    #Check configuration is valid
+    in_local_domain(p::Particle) = (x_min_local <= p.x < x_max_local)
+    in_global_domain(p::Particle) = (0 <= p.x <= Lx) && (0 <= p.y <= Ly)
+    any(!in_local_domain, local_particles_cpu) && error("Rank $rank: Not all particles in local domain")
+    any(!in_global_domain, local_particles_cpu) && error("Rank $rank: Not all particles in global domain")
+
+    num_global_particles = MPI.Allreduce(num_local_particles, +, comm)
+    if rank == 0
+        num_global_particles != N_total && error("Mismatch in N_total")
+    end #if rank
+    MPI.Barrier(comm)
+
+    #Upload particles to GPU
+    particles_gpu = CuArray{Particle}(undef, max_particles_per_rank)
+    copyto!(particles_gpu, 1, CuArray(local_particles_cpu), 1, num_local_particles)
+
+    return particles_gpu, num_local_particles
+end #function
+
 
 
 # --------- Unpack particles into coordinates --------- #

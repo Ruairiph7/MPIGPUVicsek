@@ -162,6 +162,7 @@ function run_simulation(N_total, max_steps;
             println("Step: $time_step")
         end #if
 
+        T1 = time() ###########################################################################################################################################
 
         # --------- Ghost particle exchange --------- #
 
@@ -304,6 +305,11 @@ function run_simulation(N_total, max_steps;
         end #if time_step
 
         KernelAbstractions.synchronize(CUDABackend())
+
+        T2 = time() ###########################################################################################################################################
+        println("Rank $(mpi_params.rank): step $time_step wall time: $(round(T2 - T1, digits=3))s")
+
+
     end #for time_step
 
 

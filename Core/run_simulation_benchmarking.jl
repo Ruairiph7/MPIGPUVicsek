@@ -1,5 +1,5 @@
 function run_simulation(N_total, max_steps;
-    input_files::Union{Nothing,NTuple{3,String}}=nothing,
+    inputs::Union{Nothing,NTuple{3,String},String}=nothing,
     dt::Float32=0.1f0,
     R::Float32=Float32(1 / sqrt(π)),
     γ::Float32=0.5f0,
@@ -22,7 +22,8 @@ function run_simulation(N_total, max_steps;
     plots_dir::String="plots",
     markersize=0.5,
     steps_to_log=maximum((max_steps ÷ 10, 1)),
-    ASYNC_SAVES::Union{Bool,Nothing}=nothing
+    ASYNC_SAVES::Union{Bool,Nothing}=nothing,
+    LOAD_FROM_SIMULATION::Bool=isa(inputs, String)
 )
 
     # --------- Prepare for MPI --------- #
@@ -139,11 +140,21 @@ function run_simulation(N_total, max_steps;
     sendrecv_bufs = SendRecvBuffers(max_sendrecv_particles)
 
     #Initialise array to store particles, the first num_local_particles entries corresponding to those in our local domain
-    particles, num_local_particles = initialise_particles(
-        max_particles_per_rank,
-        input_files,
-        numerical_params,
-        mpi_params)
+    particles = CuVector{Particle}(undef, 0)
+    num_local_particles = 0
+    if LOAD_FROM_SIMULATION
+        particles, num_local_particles = load_particles(
+            max_particles_per_rank,
+            inputs,
+            numerical_params,
+            mpi_params)
+    else
+        particles, num_local_particles = initialise_particles(
+            max_particles_per_rank,
+            inputs,
+            numerical_params,
+            mpi_params)
+    end #if
 
     #Get a view to local_particles from the larger array
     local_particles = view(particles, 1:num_local_particles)
@@ -343,6 +354,7 @@ function run_simulation(N_total, max_steps;
     end #if
     save_bufs.pinned_buf = Vector{Particle}(undef, 0) #Drop reference to pinned buffer
     GC.gc() #Encourage GC to collect old pinned buffer
+
 
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
     ##NOTE: For benchmarking:

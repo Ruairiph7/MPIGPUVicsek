@@ -72,6 +72,21 @@ function run_simulation(N_total, max_steps;
         file_name_addon,
         markersize)
 
+    #Set max_particles_per_rank
+    if isnothing(max_particles_per_rank)
+        max_particles_per_rank = maximum((ceil(Int32, 2 * N_total / nprocs), Int32(10000)))
+        rank == 0 && @show max_particles_per_rank
+    end #if
+
+    #Set max_sendrecv_particles - i.e. maximum ghosts/migrants in a given direction
+    if isnothing(max_sendrecv_particles)
+        max_sendrecv_particles = maximum(ceil(Int32, 2 * R_max * N_total / Lx), Int32(1000))
+        rank == 0 && @show max_sendrecv_particles
+    end #if
+
+
+    # --------- Prepare for saving outputs --------- #
+
     #Open file if saving order parameter - will all be handled by rank 0
     OP_m_file = nothing
     if rank == 0
@@ -87,18 +102,8 @@ function run_simulation(N_total, max_steps;
         end #if save_OPs
     end #if
 
-    #Set max_particles_per_rank
-    if isnothing(max_particles_per_rank)
-        max_particles_per_rank = maximum((ceil(Int32, 2 * N_total / nprocs), Int32(10000)))
-        rank == 0 && @show max_particles_per_rank
-    end #if
-
-    #Set max_sendrecv_particles - i.e. maximum ghosts/migrants in a given direction
-    if isnothing(max_sendrecv_particles)
-        max_sendrecv_particles = maximum(ceil(Int32, 2 * R_max * N_total / Lx), Int32(1000))
-        rank == 0 && @show max_sendrecv_particles
-    end #if
-
+    #Struct to aid in transferring/writing particles to disk
+    save_bufs = SaveBuffers(max_particles_per_rank)
 
     # --------- Initialise data structures --------- #
 
@@ -168,6 +173,8 @@ function run_simulation(N_total, max_steps;
             rand_bufs = initialise_rand_bufs(max_particles_per_rank)
             cells_data = CellList(cell_list_params, max_particles_per_rank)
 
+            reallocate_save_bufs!(save_bufs, max_particles_per_rank)
+
             #Else: try to lower maximum every steps_to_shrink_buffers steps
         elseif time_step % steps_to_shrink_buffers == 0 && max_particles_per_rank > 1.7 * extended_num_local_particles
             max_particles_per_rank = maximum((ceil(Int32, extended_num_local_particles * 1.7), Int32(10000)))
@@ -183,6 +190,8 @@ function run_simulation(N_total, max_steps;
             θ_updates = initialise_θ_updates(max_particles_per_rank)
             rand_bufs = initialise_rand_bufs(max_particles_per_rank)
             cells_data = CellList(cell_list_params, max_particles_per_rank)
+
+            reallocate_save_bufs!(save_bufs, max_particles_per_rank)
         end #if
 
         #Deserialize ghosts and add into particles after local_particles
@@ -235,6 +244,8 @@ function run_simulation(N_total, max_steps;
             θ_updates = initialise_θ_updates(max_particles_per_rank)
             rand_bufs = initialise_rand_bufs(max_particles_per_rank)
             cells_data = CellList(cell_list_params, max_particles_per_rank)
+
+            reallocate_save_bufs!(save_bufs, max_particles_per_rank)
         end #if
 
         #Load stayers into the beginning of particles
@@ -248,9 +259,9 @@ function run_simulation(N_total, max_steps;
         # --------- Write outputs --------- #
 
         if save_coords
-            write_coords(
-                time_step, local_particles,
-                output_params, mpi_params)
+            save_coords(
+                time_step, local_particles, num_local_particles,
+                save_bufs, output_params, mpi_params)
         end #if
 
         if save_plots
@@ -281,6 +292,12 @@ function run_simulation(N_total, max_steps;
             close(OP_m_file)
         end #if save_OPs
     end #if (rank == 0)
+
+    #Wait for final saves to finish
+    if save_bufs.ASYNC_SAVES && !isnothing(save_bufs.save_task)
+        wait(save_bufs.save_task)
+    end #if
+    CUDA.unpin(save_bufs.pinned_buf)
 
     MPI.Barrier(comm)
     return nothing

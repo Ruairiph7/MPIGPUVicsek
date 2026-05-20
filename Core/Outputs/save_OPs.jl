@@ -6,24 +6,23 @@ function save_OPs(
     num_params,
     mpi_params)
 
-    if time_step % output_params.steps_to_save_OPs == 0
+    time_step % output_params.steps_to_save_OPs != 0 && return
 
-        local_xs, local_ys, local_θs, local_uids = unpack_coords(Array(particles))
+    local_xs, local_ys, local_θs, local_uids = unpack_coords(Array(particles))
 
-        local_cos = sum(cos.(local_θs))
-        local_sin = sum(sin.(local_θs))
-        local_count = length(local_θs)
+    local_cos = sum(cos.(local_θs))
+    local_sin = sum(sin.(local_θs))
+    local_count = length(local_θs)
 
-        global_cos = MPI.Allreduce(local_cos, +, mpi_params.comm)
-        global_sin = MPI.Allreduce(local_sin, +, mpi_params.comm)
-        global_count = MPI.Allreduce(local_count, +, mpi_params.comm)
+    global_cos = MPI.Allreduce(local_cos, +, mpi_params.comm)
+    global_sin = MPI.Allreduce(local_sin, +, mpi_params.comm)
+    global_count = MPI.Allreduce(local_count, +, mpi_params.comm)
 
-        if mpi_params.rank == 0
-            magnetisation = sqrt(global_cos^2 + global_sin^2) / global_count
-            writedlm(OP_m_file, [magnetisation, time_step * num_params.dt])
-        end #if (rank == 0)
+    if mpi_params.rank == 0
+        magnetisation = sqrt(global_cos^2 + global_sin^2) / global_count
+        writedlm(OP_m_file, [magnetisation, time_step * num_params.dt])
+    end #if (rank == 0)
 
-    end #if time_step
     return nothing
 end #function
 

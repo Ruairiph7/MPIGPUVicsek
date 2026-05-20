@@ -302,7 +302,8 @@ function run_simulation(N_total, max_steps;
     if save_bufs.ASYNC_SAVES && !isnothing(save_bufs.save_task)
         wait(save_bufs.save_task)
     end #if
-    CUDA.unpin(save_bufs.pinned_buf)
+    save_bufs.pinned_buf = Vector{Particles}(undef,0) #Drop reference to pinned buffer
+    GC.gc() #Encourage GC to collect old pinned buffer
 
     MPI.Barrier(comm)
     return nothing

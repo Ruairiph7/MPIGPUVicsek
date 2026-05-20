@@ -14,9 +14,8 @@ end #function
 
 function reallocate_save_bufs!(save_bufs, new_max_particles)
     !isnothing(save_bufs.save_task) && wait(save_bufs.save_task)
-    save_bufs.save_task = nothing
-
-    CUDA.unpin(save_bufs.pinned_buf)
     save_bufs.pinned_buf = CUDA.pin(Vector{Particle}(undef, new_max_particles))
+    GC.gc() #Encourage GC to collect old pinned buffer
+
     return nothing
 end #function

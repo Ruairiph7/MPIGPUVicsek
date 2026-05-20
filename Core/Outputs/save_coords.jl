@@ -1,5 +1,5 @@
-function _save_coords(time_step, particles, num_particles, save_bufs, output_params, mpi_params)
-    time_step % output_params.steps_to_save_coords != 0 && return
+function _save_coords(time_step, particles, num_particles,
+    save_bufs, output_params, mpi_params)
 
     output_dir = "outputs/timestep_$(lpad(time_step, 10, "0"))"
     mpi_params.rank == 0 && mkpath(output_dir)

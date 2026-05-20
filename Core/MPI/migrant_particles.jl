@@ -1,4 +1,10 @@
-function exchange_migrants!(mpi_bufs, local_particles, migrant_bufs, numerical_params, mpi_params; SINGLE_RANK=false)
+function exchange_migrants!(
+    mpi_bufs,
+    local_particles,
+    migrant_bufs,
+    numerical_params, mpi_params;
+    SINGLE_RANK=false)
+
     #If only a single GPU, all particles are stayers
     if SINGLE_RANK
         return local_particles, CuVector{Particle}(undef, 0), CuVector{Particle}(undef, 0)

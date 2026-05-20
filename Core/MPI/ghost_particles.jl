@@ -1,4 +1,10 @@
-function exchange_ghosts!(mpi_bufs, local_particles, ghost_bufs, numerical_params, mpi_params; SINGLE_RANK=false)
+function exchange_ghosts!(
+    mpi_bufs,
+    local_particles,
+    ghost_bufs,
+    numerical_params, mpi_params;
+    SINGLE_RANK=false)
+
     #If only a single GPU, no ghost exchange needed
     if SINGLE_RANK
         return CuVector{Particle}(undef, 0), CuVector{Particle}(undef, 0)

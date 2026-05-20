@@ -49,18 +49,18 @@ function run_simulation(N_total, max_steps;
     # Report configuration from each rank
     for r in 0:nprocs-1
         if rank == r
-            CPU_affinity = chomp(read(`taskset -cp $(getpid())`, String))
+            CPU_affinity = chomp(read(`taskset -cp $(getpid())`, String)) #Maybe unnecessary
             CPU_affinity = CPU_affinity[findfirst(==(':'), CPU_affinity)+2:end]
             println("""
-                    Rank $rank/$(nprocs-1):
+                            -- Rank $rank/$(nprocs-1): --
                               GPU : $(CUDA.name(CUDA.device())) (device $local_rank)
                     Julia threads : $(Threads.nthreads())
                      CPU affinity : $(CPU_affinity)
                     """)
             flush(stdout)
-        end
+        end #if
         MPI.Barrier(comm)
-    end
+    end #for r
 
     # --------- Store parameters --------- #
 
@@ -287,29 +287,29 @@ function run_simulation(N_total, max_steps;
 
         # --------- Write outputs --------- #
 
-        if save_coords
+        if save_coords && (time_step % output_params.steps_to_save_coords == 0)
             _save_coords(
                 time_step, local_particles, num_local_particles,
                 save_bufs, output_params, mpi_params)
         end #if
 
-        if save_plots
+        if save_plots && (time_step % output_params.steps_to_save_plots == 0)
             _save_plots(
                 time_step, local_particles,
                 output_params, numerical_params, mpi_params)
         end #if
 
-        if save_OPs
+        if save_OPs && (time_step % output_params.steps_to_save_OPs == 0)
             _save_OPs(
                 time_step, local_particles, OP_m_file,
-                output_params, numerical_params, mpi_params)
+                numerical_params, mpi_params)
         end #if
 
-        if rank == 0 && time_step % steps_to_new_OP_file == 0
+        if rank == 0 && (time_step % steps_to_new_OP_file == 0)
             OP_file_number = OP_file_number + 1
             close(OP_m_file)
             OP_m_file = open(OP_dir * "OP_m_" * file_name_addon * "_$OP_file_number.txt", "w")
-        end #if time_step
+        end #if
 
         KernelAbstractions.synchronize(CUDABackend())
 

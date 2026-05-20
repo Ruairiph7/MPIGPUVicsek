@@ -1,11 +1,5 @@
-function _save_plots(
-    time_step,
-    particles,
-    output_params,
-    num_params,
-    mpi_params)
-
-    time_step % output_params.steps_to_save_plots != 0 && return
+function _save_plots(time_step, particles,
+    output_params, num_params, mpi_params)
 
     local_xs, local_ys, local_θs, local_uids = unpack_coords(Array(particles))
 

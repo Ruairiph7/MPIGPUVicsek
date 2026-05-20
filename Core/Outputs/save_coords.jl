@@ -6,7 +6,7 @@ function _save_coords(time_step, particles, num_particles,
     MPI.Barrier(mpi_params.comm)
 
     file_name = "$output_dir/$(output_params.file_name_addon)" *
-                "_rank_$(lpad(mpi_params.rank, 4, "0")).jld2"
+                "_rank_$(lpad(mpi_params.rank, 10, "0")).jld2"
 
     if save_bufs.ASYNC_SAVES
         # Wait for previous save to finish if it is still running

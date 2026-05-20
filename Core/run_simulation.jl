@@ -104,17 +104,17 @@ function run_simulation(N_total, max_steps;
     # --------- Prepare for saving outputs --------- #
 
     #Open file if saving order parameter - will all be handled by rank 0
-    OP_m_file = nothing
+    OP_file = nothing
     if rank == 0
         if save_plots
             plots_dir = "plots"
             mkpath(plots_dir)
         end #if save_snapshots
         if save_OPs
-            OP_dir = "OPs"
+            OP_dir = "magnetisations"
             mkpath(OP_dir)
             OP_file_number = 1
-            OP_m_file = open("$OP_dir/OP_m_$(file_name_addon)_1.txt", "w")
+            OP_file = open("$OP_dir/ms_$(file_name_addon)_$(lpad(OP_file_number,6,"0")).txt", "w")
         end #if save_OPs
     end #if
 
@@ -301,14 +301,14 @@ function run_simulation(N_total, max_steps;
 
         if save_OPs && (time_step % output_params.steps_to_save_OPs == 0)
             _save_OPs(
-                time_step, local_particles, OP_m_file,
+                time_step, local_particles, OP_file,
                 numerical_params, mpi_params)
         end #if
 
         if rank == 0 && (time_step % steps_to_new_OP_file == 0)
             OP_file_number = OP_file_number + 1
-            close(OP_m_file)
-            OP_m_file = open(OP_dir * "OP_m_" * file_name_addon * "_$OP_file_number.txt", "w")
+            close(OP_file)
+            OP_file = open("$OP_dir/ms_$(file_name_addon)_$(lpad(OP_file_number,6,"0")).txt", "w")
         end #if
 
         KernelAbstractions.synchronize(CUDABackend())
@@ -324,7 +324,7 @@ function run_simulation(N_total, max_steps;
     #Close file if saving order parameter
     if rank == 0
         if save_OPs
-            close(OP_m_file)
+            close(OP_file)
         end #if save_OPs
     end #if (rank == 0)
 

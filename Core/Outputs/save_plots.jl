@@ -22,7 +22,7 @@ function _save_plots(time_step, particles,
         colorrange = (0, 2π)
         scatter!(ax, xs, ys, markersize=output_params.markersize,
             color=colors, colormap=colormap, colorrange=colorrange)
-        file_name = "snapshot_$(output_params.file_name_addon)_$(lpad(time_step, 8, "0")).png"
+        file_name = "snapshot_$(output_params.file_name_addon)_$(lpad(time_step, 10, "0")).png"
         CairoMakie.save(output_dir * file_name, fig)
     end #if (rank == 0)
 

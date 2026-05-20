@@ -1,4 +1,4 @@
-function _save_OPs(time_step, particles, OP_m_file,
+function _save_OPs(time_step, particles, OP_file,
     num_params, mpi_params)
 
     local_cos, local_sin, local_count = compute_local_OP_sums(particles)
@@ -9,7 +9,7 @@ function _save_OPs(time_step, particles, OP_m_file,
 
     if mpi_params.rank == 0
         magnetisation = sqrt(global_cos^2 + global_sin^2) / global_count
-        writedlm(OP_m_file, [magnetisation, time_step * num_params.dt])
+        writedlm(OP_file, [magnetisation, time_step * num_params.dt])
     end #if (rank == 0)
 
     return nothing

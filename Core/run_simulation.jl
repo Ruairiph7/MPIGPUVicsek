@@ -52,10 +52,10 @@ function run_simulation(N_total, max_steps;
             CPU_affinity = chomp(read(`taskset -cp $(getpid())`, String))
             CPU_affinity = CPU_affinity[findfirst(==(':'), CPU_affinity)+2:end]
             println("""
-                    Rank $rank/$nprocs:
-                    GPU:           $(CUDA.name(CUDA.device())) (device $local_rank)
-                    Julia threads: $(Threads.nthreads())
-                    CPU affinity:  $(CPU_affinity)
+                    Rank $rank/$(nprocs-1):
+                              GPU : $(CUDA.name(CUDA.device())) (device $local_rank)
+                    Julia threads : $(Threads.nthreads())
+                     CPU affinity : $(CPU_affinity)
                     """)
             flush(stdout)
         end
@@ -166,7 +166,7 @@ function run_simulation(N_total, max_steps;
             println("Step: $time_step")
         end #if
 
-        T1 = time() ###########################################################################################################################################
+        # T1 = time() ###########################################################################################################################################
 
         # --------- Ghost particle exchange --------- #
 
@@ -282,8 +282,8 @@ function run_simulation(N_total, max_steps;
         local_particles = view(particles, 1:num_local_particles)
 
 
-        T2 = time() ###########################################################################################################################################
-        println("Rank $(mpi_params.rank): step $time_step compute time: $(round(T2 - T1, digits=3))s")
+        # T2 = time() ###########################################################################################################################################
+        # println("Rank $(mpi_params.rank): step $time_step compute time: $(round(T2 - T1, digits=3))s")
 
         # --------- Write outputs --------- #
 
@@ -313,9 +313,9 @@ function run_simulation(N_total, max_steps;
 
         KernelAbstractions.synchronize(CUDABackend())
 
-        T3 = time() ###########################################################################################################################################
-        println("Rank $(mpi_params.rank): step $time_step outputs time: $(round(T3 - T2, digits=3))s")
-        println("Rank $(mpi_params.rank): step $time_step wall time: $(round(T3 - T1, digits=3))s")
+        # T3 = time() ###########################################################################################################################################
+        # println("Rank $(mpi_params.rank): step $time_step outputs time: $(round(T3 - T2, digits=3))s")
+        # println("Rank $(mpi_params.rank): step $time_step wall time: $(round(T3 - T1, digits=3))s")
 
 
     end #for time_step

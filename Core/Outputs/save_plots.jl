@@ -1,4 +1,4 @@
-function save_plots(
+function _save_plots(
     time_step,
     particles,
     output_params,

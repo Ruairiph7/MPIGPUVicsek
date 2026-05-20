@@ -1,4 +1,4 @@
-function save_OPs(
+function _save_OPs(
     time_step,
     particles,
     OP_m_file,

@@ -104,7 +104,7 @@ function run_simulation(N_total, max_steps;
     end #if
 
     #Struct to aid in transferring/writing particles to disk
-    if isnothing(ASYNC_SAVES) 
+    if isnothing(ASYNC_SAVES)
         ASYNC_SAVES = Threads.nthreads() > 1
     end #if
     println("Rank $(mpi_params.rank): Asynchronous saving set to '$ASYNC_SAVES'")
@@ -264,19 +264,19 @@ function run_simulation(N_total, max_steps;
         # --------- Write outputs --------- #
 
         if save_coords
-            save_coords(
+            _save_coords(
                 time_step, local_particles, num_local_particles,
                 save_bufs, output_params, mpi_params)
         end #if
 
         if save_plots
-            save_plots(
+            _save_plots(
                 time_step, local_particles,
                 output_params, numerical_params, mpi_params)
         end #if
 
         if save_OPs
-            save_OPs(
+            _save_OPs(
                 time_step, local_particles, OP_m_file,
                 output_params, numerical_params, mpi_params)
         end #if

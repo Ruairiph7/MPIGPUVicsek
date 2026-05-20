@@ -18,8 +18,11 @@ function run_simulation(N_total, max_steps;
     steps_to_save_coords=10,
     steps_to_new_OP_file::Int=500000,
     file_name_addon::String="",
+    OP_dir::String="magnetisations",
+    plots_dir::String="plots",
     markersize=0.5,
     steps_to_log=maximum((max_steps ÷ 10, 1)),
+    ASYNC_SAVES::Union{Bool,Nothing}=nothing
 )
 
     # --------- Prepare for MPI --------- #
@@ -45,6 +48,21 @@ function run_simulation(N_total, max_steps;
         max_sendrecv_particles = 0
     end #if
 
+    # Report configuration from each rank
+    for r in 0:nprocs-1
+        if rank == r
+            CPU_affinity = chomp(read(`taskset -cp $(getpid())`, String)) #Maybe unnecessary
+            CPU_affinity = CPU_affinity[findfirst(==(':'), CPU_affinity)+2:end]
+            println("""
+                           --- Rank $rank/$(nprocs-1): ---
+                              GPU : $(CUDA.name(CUDA.device())) (device $local_rank)
+                    Julia threads : $(Threads.nthreads())
+                     CPU affinity : $(CPU_affinity)
+                    """)
+            flush(stdout)
+        end #if
+        MPI.Barrier(comm)
+    end #for r
 
     # --------- Store parameters --------- #
 
@@ -55,7 +73,7 @@ function run_simulation(N_total, max_steps;
 
     #Store numerical parameters
     R² = R^2
-    inv_πR² = Float32(1.0f0/(π*R²))
+    inv_πR² = Float32(1.0f0 / (π * R²))
     numerical_params = (; N_total,
         dt, R, R², inv_πR², γ, λ, v,
         Lx, Ly, Lx_local,
@@ -70,22 +88,9 @@ function run_simulation(N_total, max_steps;
         steps_to_save_coords,
         steps_to_new_OP_file,
         file_name_addon,
+        OP_dir,
+        plots_dir,
         markersize)
-
-    #Open file if saving order parameter - will all be handled by rank 0
-    OP_m_file = nothing
-    if rank == 0
-        if save_plots
-            plots_dir = "plots"
-            mkpath(plots_dir)
-        end #if save_snapshots
-        if save_OPs
-            OP_dir = "OPs"
-            mkpath(OP_dir)
-            OP_file_number = 1
-            OP_m_file = open("$OP_dir/OP_m_$(file_name_addon)_1.txt", "w")
-        end #if save_OPs
-    end #if
 
     #Set max_particles_per_rank
     if isnothing(max_particles_per_rank)
@@ -99,6 +104,28 @@ function run_simulation(N_total, max_steps;
         rank == 0 && @show max_sendrecv_particles
     end #if
 
+
+    # --------- Prepare for saving outputs --------- #
+
+    #Open file if saving order parameter - will all be handled by rank 0
+    OP_file = nothing
+    if rank == 0
+        if save_plots
+            mkpath(plots_dir)
+        end #if save_snapshots
+        if save_OPs
+            mkpath(OP_dir)
+            OP_file_number = 1
+            OP_file = open("$OP_dir/ms_$(file_name_addon)_$(lpad(OP_file_number,6,"0")).txt", "w")
+        end #if save_OPs
+    end #if
+
+    #Struct to aid in transferring/writing particles to disk
+    if isnothing(ASYNC_SAVES)
+        ASYNC_SAVES = Threads.nthreads() > 1
+    end #if
+    println("Rank $rank: Asynchronous saving set to '$ASYNC_SAVES'")
+    save_bufs = SaveBuffers(max_particles_per_rank, ASYNC_SAVES=ASYNC_SAVES)
 
     # --------- Initialise data structures --------- #
 
@@ -130,6 +157,8 @@ function run_simulation(N_total, max_steps;
 
     # --------- Perform simulation --------- #
 
+    rank == 0 && println("Starting simulation...")
+
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
     #NOTE: For benchmarking:
     @warn "DOING BENCHMARKING...."
@@ -139,7 +168,7 @@ function run_simulation(N_total, max_steps;
     for time_step = 1:max_steps
 
         if rank == 0 && time_step % steps_to_log == 0
-            println("Step: $time_step")
+            println("--------- Step: $time_step ---------")
         end #if
 
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
@@ -180,6 +209,8 @@ function run_simulation(N_total, max_steps;
             rand_bufs = initialise_rand_bufs(max_particles_per_rank)
             cells_data = CellList(cell_list_params, max_particles_per_rank)
 
+            reallocate_save_bufs!(save_bufs, max_particles_per_rank)
+
             #Else: try to lower maximum every steps_to_shrink_buffers steps
         elseif time_step % steps_to_shrink_buffers == 0 && max_particles_per_rank > 1.7 * extended_num_local_particles
             max_particles_per_rank = maximum((ceil(Int32, extended_num_local_particles * 1.7), Int32(10000)))
@@ -195,6 +226,8 @@ function run_simulation(N_total, max_steps;
             θ_updates = initialise_θ_updates(max_particles_per_rank)
             rand_bufs = initialise_rand_bufs(max_particles_per_rank)
             cells_data = CellList(cell_list_params, max_particles_per_rank)
+
+            reallocate_save_bufs!(save_bufs, max_particles_per_rank)
         end #if
 
         #Deserialize ghosts and add into particles after local_particles
@@ -247,6 +280,8 @@ function run_simulation(N_total, max_steps;
             θ_updates = initialise_θ_updates(max_particles_per_rank)
             rand_bufs = initialise_rand_bufs(max_particles_per_rank)
             cells_data = CellList(cell_list_params, max_particles_per_rank)
+
+            reallocate_save_bufs!(save_bufs, max_particles_per_rank)
         end #if
 
         #Load stayers into the beginning of particles
@@ -259,25 +294,29 @@ function run_simulation(N_total, max_steps;
 
         # --------- Write outputs --------- #
 
-        if save_coords
-            write_coords(time_step, local_particles, output_params, mpi_params)
+        if save_coords && (time_step % output_params.steps_to_save_coords == 0)
+            _save_coords(
+                time_step, local_particles, num_local_particles,
+                save_bufs, output_params, mpi_params)
         end #if
 
-        if save_plots || save_OPs
-            save_plots_and_OPs(
-                time_step,
-                local_particles,
-                OP_m_file,
-                output_params,
-                numerical_params,
-                mpi_params)
+        if save_plots && (time_step % output_params.steps_to_save_plots == 0)
+            _save_plots(
+                time_step, local_particles,
+                output_params, numerical_params, mpi_params)
         end #if
 
-        if rank == 0 && time_step % steps_to_new_OP_file == 0
+        if save_OPs && (time_step % output_params.steps_to_save_OPs == 0)
+            _save_OPs(
+                time_step, local_particles, OP_file,
+                numerical_params, mpi_params)
+        end #if
+
+        if rank == 0 && (time_step % steps_to_new_OP_file == 0)
             OP_file_number = OP_file_number + 1
-            close(OP_m_file)
-            OP_m_file = open(OP_dir * "OP_m_" * file_name_addon * "_$OP_file_number.txt", "w")
-        end #if time_step
+            close(OP_file)
+            OP_file = open("$OP_dir/ms_$(file_name_addon)_$(lpad(OP_file_number,6,"0")).txt", "w")
+        end #if
 
         KernelAbstractions.synchronize(CUDABackend())
 
@@ -287,20 +326,29 @@ function run_simulation(N_total, max_steps;
         local_times[time_step] = MPI.Wtime() - start_time
         #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 
+
     end #for time_step
 
 
     #Close file if saving order parameter
     if rank == 0
         if save_OPs
-            close(OP_m_file)
+            close(OP_file)
         end #if save_OPs
     end #if (rank == 0)
+
+    #Wait for final saves to finish
+    if save_bufs.ASYNC_SAVES && !isnothing(save_bufs.save_task)
+        wait(save_bufs.save_task)
+    end #if
+    save_bufs.pinned_buf = Vector{Particle}(undef, 0) #Drop reference to pinned buffer
+    GC.gc() #Encourage GC to collect old pinned buffer
 
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
     ##NOTE: For benchmarking:
     writedlm("times_rank" * string(rank) * "_" * file_name_addon * ".txt", local_times)
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+
 
     MPI.Barrier(comm)
     return nothing

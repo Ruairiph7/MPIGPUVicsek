@@ -155,10 +155,6 @@ function run_simulation(N_total, max_steps;
     rand_bufs = initialise_rand_bufs(max_particles_per_rank)
 
 
-
-    TI = time() ###########################################################################################################################################
-
-
     # --------- Perform simulation --------- #
 
     rank == 0 && println("Starting simulation...")
@@ -168,7 +164,6 @@ function run_simulation(N_total, max_steps;
             println("--------- Step: $time_step ---------")
         end #if
 
-        # T1 = time() ###########################################################################################################################################
 
         # --------- Ghost particle exchange --------- #
 
@@ -284,9 +279,6 @@ function run_simulation(N_total, max_steps;
         local_particles = view(particles, 1:num_local_particles)
 
 
-        # T2 = time() ###########################################################################################################################################
-        # println("Rank $(mpi_params.rank): step $time_step compute time: $(round(T2 - T1, digits=3))s")
-
         # --------- Write outputs --------- #
 
         if save_coords && (time_step % output_params.steps_to_save_coords == 0)
@@ -314,12 +306,6 @@ function run_simulation(N_total, max_steps;
         end #if
 
         KernelAbstractions.synchronize(CUDABackend())
-
-        # T3 = time() ###########################################################################################################################################
-        # println("Rank $(mpi_params.rank): step $time_step outputs time: $(round(T3 - T2, digits=3))s")
-        # println("Rank $(mpi_params.rank): step $time_step wall time: $(round(T3 - T1, digits=3))s")
-
-
     end #for time_step
 
 
@@ -336,10 +322,6 @@ function run_simulation(N_total, max_steps;
     end #if
     save_bufs.pinned_buf = Vector{Particle}(undef, 0) #Drop reference to pinned buffer
     GC.gc() #Encourage GC to collect old pinned buffer
-
-
-    TF = time() ###########################################################################################################################################
-    println("Rank $(mpi_params.rank): Total time: $(round(TF - TI, digits=3))s")
 
 
     MPI.Barrier(comm)

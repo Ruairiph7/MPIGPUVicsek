@@ -52,7 +52,7 @@ function run_simulation(N_total, max_steps;
             CPU_affinity = chomp(read(`taskset -cp $(getpid())`, String)) #Maybe unnecessary
             CPU_affinity = CPU_affinity[findfirst(==(':'), CPU_affinity)+2:end]
             println("""
-                            -- Rank $rank/$(nprocs-1): --
+                           --- Rank $rank/$(nprocs-1): ---
                               GPU : $(CUDA.name(CUDA.device())) (device $local_rank)
                     Julia threads : $(Threads.nthreads())
                      CPU affinity : $(CPU_affinity)

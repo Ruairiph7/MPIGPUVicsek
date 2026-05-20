@@ -1,11 +1,7 @@
 function _save_OPs(time_step, particles, OP_m_file,
     num_params, mpi_params)
 
-    local_xs, local_ys, local_θs, local_uids = unpack_coords(Array(particles))
-
-    local_cos = sum(cos.(local_θs))
-    local_sin = sum(sin.(local_θs))
-    local_count = length(local_θs)
+    local_cos, local_sin, local_count = compute_local_OP_sums(particles)
 
     global_cos = MPI.Allreduce(local_cos, +, mpi_params.comm)
     global_sin = MPI.Allreduce(local_sin, +, mpi_params.comm)
@@ -19,3 +15,12 @@ function _save_OPs(time_step, particles, OP_m_file,
     return nothing
 end #function
 
+
+# --------- Compute sums of sin() and cos() local particle θs on GPU --------- #
+
+function compute_local_OP_sums(particles)
+    num_particles = length(particles)
+    cos_sum = CUDA.mapreduce(p -> cos(p.θ), +, particles)
+    sin_sum = CUDA.mapreduce(p -> sin(p.θ), +, particles)
+    return cos_sum, sin_sum, num_particles
+end #function

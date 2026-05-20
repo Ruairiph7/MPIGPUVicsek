@@ -163,7 +163,7 @@ function run_simulation(N_total, max_steps;
     for time_step = 1:max_steps
 
         if rank == 0 && time_step % steps_to_log == 0
-            println("Step: $time_step")
+            println("--------- Step: $time_step ---------")
         end #if
 
         # T1 = time() ###########################################################################################################################################

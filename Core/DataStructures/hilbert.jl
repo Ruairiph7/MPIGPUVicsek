@@ -30,10 +30,9 @@ end
 function compute_hilbert_ordering(ncx::Int32, ncy::Int32)
     ncells = Int(ncx * ncy)
 
-    # Find the order needed: smallest n such that 2^n >= max(ncx, ncy)
-    # This ensures both cx and cy fit within the Hilbert grid
-    order = Int(ceil(log2(max(ncx, ncy))))
-    order = max(order, 1)   # minimum order 1 (2×2 Hilbert grid)
+    # Find the order needed; smallest n>=1 such that 2^n >= max(ncx, ncy)
+    order = max(1, ceil(Int, log2(max(ncx, ncy))))
+    @assert (1 << order) >= max(ncx, ncy) "Error in hilbert order - order: $order, max grid size: $(max(ncx,ncy))"
 
     # Compute Hilbert code for each valid (cx, cy) pair
     # Pairs outside the actual ncx × ncy grid are excluded automatically
@@ -59,22 +58,4 @@ function compute_hilbert_ordering(ncx::Int32, ncy::Int32)
     end
 
     return row_major_to_hilbert, hilbert_to_row_major
-end
-
-
-function print_hilbert_ordering(ncx::Int32, ncy::Int32,
-                                 hilbert_to_row_major::Vector{Int32})
-    # Print the Hilbert visit order as a grid
-    grid = zeros(Int32, ncy, ncx)
-    for (h_idx, rm_idx) in enumerate(hilbert_to_row_major)
-        rm_0 = rm_idx - 1
-        cx   = rm_0 % ncx + 1   # 1-based for display
-        cy   = rm_0 ÷ ncx + 1
-        grid[cy, cx] = Int32(h_idx)
-    end
-
-    println("Hilbert visit order for $(ncx)×$(ncy) grid:")
-    for cy in ncy:-1:1   # print top row first
-        println(join(lpad(grid[cy, cx], 4) for cx in 1:ncx))
-    end
 end

@@ -11,7 +11,7 @@ function _save_OPs(time_step, particles, OP_file,
 
     if mpi_params.rank == 0
         magnetisation = sqrt(global_cos^2 + global_sin^2) / global_count
-        writedlm(OP_file, [magnetisation, time_step * num_params.dt])
+        writedlm(OP_file, [(time_step * num_params.dt) magnetisation])
     end #if (rank == 0)
 
     return nothing

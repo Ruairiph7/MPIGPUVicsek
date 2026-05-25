@@ -325,7 +325,7 @@ function run_simulation(N_total, max_steps;
                 numerical_params, mpi_params)
         end #if
 
-        if rank == 0 && (time_step % steps_to_new_OP_file == 0)
+        if rank == 0 && (time_step % steps_to_new_OP_file == 0) && (time_step != max_steps)
             OP_file_number = OP_file_number + 1
             close(OP_file)
             OP_file = open("$OP_dir/ms_$(file_name_addon)_$(lpad(OP_file_number,6,"0")).txt", "w")

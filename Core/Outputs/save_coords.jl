@@ -23,13 +23,13 @@ function _save_coords(time_step, particles, num_particles,
                 @warn "Rank $(mpi_params.rank): write running on main thread - async not working."
             end #if
             t_write = @elapsed @save file_name particles = save_bufs.pinned_buf[1:num_particles]
-            println("Rank $(mpi_params.rank): backround write took $(round(t_write, digits=3))s")
+            output_params.LOG_WRITE_TIMES && println("Rank $(mpi_params.rank): backround write took $(round(t_write, digits=3))s")
         end #begin
 
     else
         copyto!(save_bufs.pinned_buf, 1, particles, 1, num_particles)
         t_write = @elapsed @save file_name particles = save_bufs.pinned_buf[1:num_particles]
-        println("Rank $(mpi_params.rank): write took $(round(t_write, digits=3))s")
+        output_params.LOG_WRITE_TIMES && println("Rank $(mpi_params.rank): write took $(round(t_write, digits=3))s")
     end #if
 
     return nothing

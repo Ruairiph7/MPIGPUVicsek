@@ -23,7 +23,8 @@ function run_simulation(N_total, max_steps;
     markersize=0.5,
     steps_to_log=maximum((max_steps ÷ 10, 1)),
     ASYNC_SAVES::Union{Bool,Nothing}=nothing,
-    LOAD_FROM_SIMULATION::Bool=isa(inputs, String)
+    LOAD_FROM_SIMULATION::Bool=isa(inputs, String),
+    LOG_WRITE_TIMES::Bool=false
 )
 
     # --------- Prepare for MPI --------- #
@@ -91,7 +92,8 @@ function run_simulation(N_total, max_steps;
         file_name_addon,
         OP_dir,
         plots_dir,
-        markersize)
+        markersize,
+        LOG_WRITE_TIMES)
 
     #Set max_particles_per_rank
     if isnothing(max_particles_per_rank)

@@ -1,5 +1,4 @@
 function run_simulation(N_total, max_steps;
-    inputs::Union{Nothing,NTuple{3,String},String}=nothing,
     dt::Float32=0.1f0,
     R::Float32=Float32(1 / sqrt(π)),
     γ::Float32=0.5f0,
@@ -7,9 +6,11 @@ function run_simulation(N_total, max_steps;
     Lx::Int32=Int32(10),
     Ly::Int32=Lx,
     v::Float32=Float32(1 / sqrt(π)),
+
     max_particles_per_rank::Union{Int32,Nothing}=nothing,
     max_sendrecv_particles::Union{Int32,Nothing}=nothing,
     steps_to_shrink_buffers=maximum((max_steps ÷ 10, 100000)),
+
     save_OPs=true,
     save_plots=true,
     save_coords=false,
@@ -17,11 +18,14 @@ function run_simulation(N_total, max_steps;
     steps_to_save_plots=100,
     steps_to_save_coords=10,
     steps_to_new_OP_file::Int=500000,
+
+    inputs::Union{Nothing,NTuple{3,String},String}=nothing,
     file_name_addon::String="",
     OP_dir::String="magnetisations",
     plots_dir::String="plots",
     markersize=0.5,
     steps_to_log=maximum((max_steps ÷ 10, 1)),
+
     ASYNC_SAVES::Union{Bool,Nothing}=nothing,
     LOAD_FROM_SIMULATION::Bool=isa(inputs, String),
     LOG_WRITE_TIMES::Bool=false

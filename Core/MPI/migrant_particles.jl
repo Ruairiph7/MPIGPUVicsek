@@ -95,8 +95,8 @@ function sort_migrants!(bufs, particles, x_min_local, x_max_local, R, rank)
     n = length(particles)
     n == 0 && return view(bufs.stayers, 1:0), view(bufs.lefts, 1:0), view(bufs.rights, 1:0)
 
-    workgroup_size = 256
-    num_workgroups = 512
+    workgroup_size = STD_WORKGROUP_SIZE
+    num_workgroups = STD_NUM_WORKGROUPS
     total_num_threads = workgroup_size * num_workgroups
     kernel! = sort_migrants_kernel!(CUDABackend())
 

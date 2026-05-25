@@ -4,8 +4,8 @@ function build_histogram!(cells_data, cell_list_params, particles, num_particles
     fill!(cells_data.cell_counts, Int32(0))
     fill!(cells_data.num_occupied, Int32(0))
 
-    workgroup_size = 256
-    num_workgroups = 512
+    workgroup_size = STD_WORKGROUP_SIZE
+    num_workgroups = STD_NUM_WORKGROUPS
     total_num_threads = workgroup_size * num_workgroups
 
     kernel! = build_histogram_kernel!(CUDABackend(), workgroup_size)

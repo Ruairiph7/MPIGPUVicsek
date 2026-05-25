@@ -15,8 +15,8 @@ function pack_particles!(
     right_count = Ref{Int32}(4 * n_right)
     n_left == n_right == 0 && return left_count, right_count
 
-    workgroup_size = 256
-    num_workgroups = 512
+    workgroup_size = STD_WORKGROUP_SIZE
+    num_workgroups = STD_NUM_WORKGROUPS
     total_num_threads = workgroup_size * num_workgroups
     kernel! = pack_particles_kernel!(CUDABackend())
 

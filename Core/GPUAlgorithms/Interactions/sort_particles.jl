@@ -5,8 +5,8 @@ function sort_particles!(cells_data, particles, num_particles)
     # each time a particle in the corresponding cell is inserted into sorted_particles.
     copyto!(cells_data.cell_starts_scratch, cells_data.cell_starts)
 
-    workgroup_size = 256
-    num_workgroups = 512
+    workgroup_size = STD_WORKGROUP_SIZE
+    num_workgroups = STD_NUM_WORKGROUPS
     total_num_threads = workgroup_size * num_workgroups
 
     kernel! = sort_particles_kernel!(CUDABackend(), workgroup_size)

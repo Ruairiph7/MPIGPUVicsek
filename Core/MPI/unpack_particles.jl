@@ -4,8 +4,8 @@ function unpack_particles!(particles, base_num_particles, left_buf, right_buf)
     n_left == n_right == 0 && return nothing
     num_particles = base_num_particles + n_left + n_right
 
-    workgroup_size = 256
-    num_workgroups = 512
+    workgroup_size = STD_WORKGROUP_SIZE
+    num_workgroups = STD_NUM_WORKGROUPS
     total_num_threads = workgroup_size * num_workgroups
     kernel! = unpack_particles_kernel!(CUDABackend())
 

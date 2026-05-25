@@ -1,4 +1,4 @@
-const two_π_f32 = Float32(2*π)
+const two_π_f32 = Float32(2 * π)
 
 function update_particles!(particles, θ_updates, numerical_params, rand_bufs)
     num_particles = length(particles)
@@ -6,8 +6,8 @@ function update_particles!(particles, θ_updates, numerical_params, rand_bufs)
     cuRAND.rand!(rand_bufs.rand1)
     cuRAND.rand!(rand_bufs.rand2)
 
-    workgroup_size = 256
-    num_workgroups = 512
+    workgroup_size = STD_WORKGROUP_SIZE
+    num_workgroups = STD_NUM_WORKGROUPS
     total_num_threads = workgroup_size * num_workgroups
     kernel! = update_particles_kernel!(CUDABackend(), workgroup_size)
 

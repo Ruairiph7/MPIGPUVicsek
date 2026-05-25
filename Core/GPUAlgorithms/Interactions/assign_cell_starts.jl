@@ -6,8 +6,8 @@ function assign_cell_starts!(cells_data, cell_list_params)
     CUDA.cumsum!(cells_data.cell_starts_scratch, cells_data.cell_counts)
 
     # Shift to 1-based exclusive prefix sum in cell_starts
-    workgroup_size = 256
-    num_workgroups = 512
+    workgroup_size = STD_WORKGROUP_SIZE
+    num_workgroups = STD_NUM_WORKGROUPS
     total_num_threads = workgroup_size * num_workgroups
 
     kernel! = assign_cell_starts_kernel!(CUDABackend(), workgroup_size)

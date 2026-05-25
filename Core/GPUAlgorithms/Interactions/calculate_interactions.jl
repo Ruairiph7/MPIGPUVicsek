@@ -5,15 +5,15 @@
 # one thread per particle even when cell_count > workgroup_size.
 #   - Also iterate through neighbour cells in tiles, again handles high cell_counts
 #   - In each batch all neighbour tiles are traversed (so tiles are reloaded per batch)
-#   - workgroup_size = tile_size = 128, so all threads always participate in tile loading
-#   - Shared memory usage of tile_size * sizeof(Particle) = 128 * 16 = 2 KB per workgroup
+#   - workgroup_size = TILE_SIZE, so all threads always participate in tile loading
+#   - For TILE_SIZE=128, shared memory usage of tile_size * sizeof(Particle) = 128 * 16 = 2 KB per workgroup
 
 @inline function F(θ::Float32, inv_πR²::Float32)
     return sin(θ) * inv_πR²
 end #function
 
 function calculate_interactions!(θ_updates, cells_data, cell_list_params, numerical_params)
-    workgroup_size = 128
+    workgroup_size = TILE_SIZE
     num_workgroups = cell_list_params.num_cells
     total_num_threads = workgroup_size * num_workgroups
 
@@ -55,10 +55,9 @@ end #function
 
     # Exit immediately for workgroups beyond num_occupied
     @uniform max_group_idx = num_occupied[1]
-    GROUP_ACTIVE = group_idx <= max_group_idx
-    if GROUP_ACTIVE
+    if group_idx <= max_group_idx
 
-        shared_tile = @localmem Particle 128
+        shared_tile = @localmem Particle TILE_SIZE
 
         # Uniform values - same for all threads in workgrooup
         @uniform cell_idx = occupied_cells[group_idx]
@@ -101,8 +100,8 @@ end #function
 
                     while tile_offset < nghbr_count
 
-                        #Fix tile size to 128, or number of remaining particles if < 128
-                        this_tile_size = min(Int32(128), nghbr_count - tile_offset)
+                        #Fix tile size to TILE_SIZE, or number of remaining particles if < TILE_SIZE
+                        this_tile_size = min(Int32(TILE_SIZE), nghbr_count - tile_offset)
 
                         if local_tidx <= this_tile_size
                             shared_tile[local_tidx] = sorted_particles[
@@ -128,7 +127,7 @@ end #function
                         end #if VALID_IDX
                         @synchronize #Ensure all threads are done before the next load
 
-                        tile_offset += Int32(128)
+                        tile_offset += Int32(TILE_SIZE)
                     end #while tile_offset
                 end #if nghbr_count
             end #for nghbr
@@ -138,7 +137,7 @@ end #function
                 θ_updates[perm[p_idx]] = n_local > 0.0f0 ? γ * F_sum_local * dt / n_local : 0.0f0
             end #if
 
-            batch_offset += Int32(128)
+            batch_offset += Int32(TILE_SIZE)
         end #while batch_offset
-    end #if GROUP_ACTIVE
+    end #if group_idx
 end #function

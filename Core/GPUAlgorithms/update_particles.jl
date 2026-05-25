@@ -1,13 +1,16 @@
+const two_π_f32 = Float32(2*π)
+
 function update_particles!(particles, θ_updates, numerical_params, rand_bufs)
     num_particles = length(particles)
-    CUDA.rand!(rand_bufs.rand1)
-    CUDA.rand!(rand_bufs.rand2)
+
+    cuRAND.rand!(rand_bufs.rand1)
+    cuRAND.rand!(rand_bufs.rand2)
 
     workgroup_size = 256
     num_workgroups = 512
     total_num_threads = workgroup_size * num_workgroups
-
     kernel! = update_particles_kernel!(CUDABackend(), workgroup_size)
+
     kernel!(
         particles,
         θ_updates,
@@ -48,7 +51,7 @@ end #function
         this_rand1 = rand1[i]
         if this_rand1 < λ * dt
             this_rand2 = rand2[i]
-            this_θ_update = π * this_rand2 * 2 - θ_i
+            this_θ_update = two_π_f32 * this_rand2 - θ_i
         else
             this_θ_update = θ_updates[i]
         end #if

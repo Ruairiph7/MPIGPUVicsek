@@ -55,7 +55,7 @@ end #function
 
     # Exit immediately for workgroups beyond num_occupied
     @uniform max_group_idx = num_occupied[1]
-    @uniform GROUP_ACTIVE = group_idx <= max_group_idx
+    GROUP_ACTIVE = group_idx <= max_group_idx
     if GROUP_ACTIVE
 
         shared_tile = @localmem Particle 128

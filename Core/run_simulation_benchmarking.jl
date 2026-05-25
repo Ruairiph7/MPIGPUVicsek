@@ -186,7 +186,7 @@ function run_simulation(N_total, max_steps;
     #NOTE: For benchmarking:
     @warn "DOING BENCHMARKING...."
     local_initialisation_time = time() - local_initialisation_time_start
-    writedlm("initialisation_time_rank_$(rank).txt", local_initialisation_time)
+    writedlm("initialisation_time_rank_$(rank)_$file_name_addon.txt", local_initialisation_time)
 
     local_times = zeros(max_steps)
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
@@ -373,7 +373,7 @@ function run_simulation(N_total, max_steps;
 
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
     ##NOTE: For benchmarking:
-    writedlm("times_rank_$(rank).txt", local_times)
+    writedlm("times_rank_$(rank)_$file_name_addon.txt", local_times)
     #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 
 

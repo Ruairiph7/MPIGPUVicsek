@@ -1,6 +1,5 @@
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 #NOTE: For benchmarking:
-@warn "DOING BENCHMARKING..."
 import_time_start = time()
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 
@@ -20,7 +19,11 @@ include("./Core/run_simulation_benchmarking.jl")
 import_time = time() - import_time_start
 writedlm("import_time.txt", import_time)
 
-compilation_time = @elapsed run_simulation(1,1,save_OPs=false,save_plots=false,save_coords=false)
+compilation_time = @elapsed begin
+    MPI.Init()
+    run_simulation(1,1,save_OPs=false,save_plots=false,save_coords=false)
+    MPI.Finalize()
+end #begin
 writedlm("compilation_time.txt", compilation_time)
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 

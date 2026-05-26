@@ -103,10 +103,12 @@ function sort_migrants!(bufs, particles, x_min_local, x_max_local, R, rank)
     for attempt in 1:2 #Make two attempts, allocate extra space if the first overflows
         fill!(bufs.counters, Int32(0))
         fill!(bufs.overflow_flag, Int32(0))
+        fill!(bufs.stayer_overflow_flag, Int32(0))
 
         kernel!(
             bufs.stayers, bufs.lefts, bufs.rights, bufs.counters,
             bufs.overflow_flag, bufs.buf_lengths,
+            bufs.stayer_overflow_flag, bufs.stayer_buf_length,
             particles, n,
             x_min_local, x_max_local,
             R;
@@ -115,8 +117,9 @@ function sort_migrants!(bufs, particles, x_min_local, x_max_local, R, rank)
 
         counters_cpu = Array(bufs.counters)
         overflowed = Array(bufs.overflow_flag)[1] != Int32(0)
+        stayer_overflowed = Array(bufs.stayer_overflow_flag)[1] != Int32(0)
 
-        if !overflowed
+        if !overflowed && !stayer_overflowed
             return (
                 view(bufs.stayers, 1:counters_cpu[1]),
                 view(bufs.lefts, 1:counters_cpu[2]),
@@ -126,12 +129,21 @@ function sort_migrants!(bufs, particles, x_min_local, x_max_local, R, rank)
         attempt == 2 && error("sort_migrants!: Still overflows on second attempt.")
 
         # Resize buffers
-        max_count = maximum(counters_cpu[2], counters_cpu[3])
-        new_buf_size = ceil(Int32, max_count * 1.5f0)
-        bufs.lefts = CuVector{Particle}(undef, new_buf_size)
-        bufs.rights = CuVector{Particle}(undef, new_buf_size)
-        bufs.buf_lengths = new_buf_size
-        println("Rank $rank raising migrant buffer size to $new_buf_size")
+        if overflowed
+            max_count = maximum(counters_cpu[2], counters_cpu[3])
+            new_buf_size = ceil(Int32, max_count * 1.5f0)
+            bufs.lefts = CuVector{Particle}(undef, new_buf_size)
+            bufs.rights = CuVector{Particle}(undef, new_buf_size)
+            bufs.buf_lengths = new_buf_size
+            println("Rank $rank raising migrant buffer size to $new_buf_size")
+        end #if overflowed
+        if stayer_overflowed
+            max_count = counters_cpu[1]
+            new_buf_size = ceil(Int32, max_count * 1.5f0)
+            bufs.stayers = CuVector{Particle}(undef, new_buf_size)
+            bufs.stayer_buf_length = new_buf_size
+            println("Rank $rank raising stayer buffer size to $new_buf_size")
+        end #if stayer_overflowed
 
     end #for attempt
 end #function
@@ -139,6 +151,7 @@ end #function
 @kernel function sort_migrants_kernel!(
     stayers, lefts, rights, counters,
     overflow_flag, buf_lengths,
+    stayer_overflow_flag, stayer_buf_length,
     @Const(particles), n,
     x_min_local, x_max_local,
     R)
@@ -183,7 +196,11 @@ end #function
             end #if idx
         else #Particle has remained in this domain
             idx = CUDA.atomic_add!(pointer(counters, 1), Int32(1))
-            stayers[idx+1] = p
+            if idx <= stayer_buf_length
+                stayers[idx+1] = p
+            else #No remaining space in buffer - raise overflow flag
+                CUDA.atomic_max!(pointer(stayer_overflow_flag, 1), Int32(1))
+            end #if idx
         end #if
     end #for i
 end #function

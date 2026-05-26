@@ -25,17 +25,21 @@ mutable struct MigrantBuffers
     counters::CuVector{Int32}
     overflow_flag::CuVector{Int32}
     buf_lengths::Int32
+    stayer_overflow_flag::CuVector{Int32}
+    stayer_buf_length::Int32
 end #struct
 MigrantBuffers(
-    max_particles_on_rank::Union{Int32,Int64},
+    max_particles_per_rank::Union{Int32,Int64},
     max_sendrecv_particles::Union{Int32,Int64}
 ) = MigrantBuffers(
-    CuVector{Particle}(undef, max_particles_on_rank),
+    CuVector{Particle}(undef, max_particles_per_rank),
     CuVector{Particle}(undef, max_sendrecv_particles),
     CuVector{Particle}(undef, max_sendrecv_particles),
     CUDA.zeros(Int32, 3),
     CUDA.zeros(Int32, 1),
-    Int32(max_sendrecv_particles)
+    Int32(max_sendrecv_particles),
+    CUDA.zeros(Int32, 1),
+    Int32(max_particles_per_rank)
 )
 
 

@@ -12,8 +12,11 @@ function _save_coords(time_step, particles, num_particles,
         #Wait for previous save to finish if it is still running
         if !isnothing(save_bufs.save_task)
             t_wait = @elapsed wait(save_bufs.save_task)
-            t_wait > 0.01 && println("Rank $(mpi_params.rank): waited $(round(t_wait, digits=3))s for previous save")
+            if output_params.LOG_WRITE_TIMES && t_wait > 0.01
+                println("Rank $(mpi_params.rank): waited $(round(t_wait, digits=3))s for previous save")
+            end #if
         end #if
+        copyto!(save_bufs.pinned_buf, 1, particles, 1, num_particles)
 
         #Launch saving from the buffer to file asynchronousy on a background thread.
         main_thread_id = Threads.threadid()

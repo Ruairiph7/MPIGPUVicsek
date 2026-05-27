@@ -16,7 +16,7 @@ function sort_particles!(cells_data, particles, num_particles)
         cells_data.cell_starts_scratch,
         cells_data.cell_indices,
         particles,
-        num_particles;
+        Int32(num_particles);
         ndrange=total_num_threads)
     # KernelAbstractions.synchronize(CUDABackend())
 end #function

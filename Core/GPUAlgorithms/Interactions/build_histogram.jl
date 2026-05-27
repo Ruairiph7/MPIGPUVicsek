@@ -20,7 +20,7 @@ function build_histogram!(cells_data, cell_list_params, particles, num_particles
         cell_list_params.inv_cell_size_x,
         cell_list_params.inv_cell_size_y,
         particles,
-        num_particles;
+        Int32(num_particles);
         ndrange=total_num_threads)
 
     # KernelAbstractions.synchronize(CUDABackend())

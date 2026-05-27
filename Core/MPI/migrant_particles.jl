@@ -23,7 +23,7 @@ function exchange_migrants!(
         mpi_params.rank)
 
     #2) Serialise migrants to send over MPI, allocating extra space if required
-    ensure_send_capacity!(mpi_bufs, ghost_bufs.buf_lengths, mpi_params.rank)
+    ensure_send_capacity!(mpi_bufs, migrant_bufs.buf_lengths, mpi_params.rank)
     send_left_count, send_right_count = pack_particles!(
         mpi_bufs,
         migrants_left_view,

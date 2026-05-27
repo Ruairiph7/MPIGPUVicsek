@@ -20,7 +20,7 @@ function exchange_ghosts!(
         numerical_params.x_min_local,
         numerical_params.x_max_local,
         numerical_params.R,
-        rank)
+        mpi_params.rank)
 
     #2) Serialise ghosts to send over MPI, allocating extra space if required
     #   - Apply PBCs if needed to ensure coordinates are in the domain covered by the local cell list
@@ -97,8 +97,8 @@ end #function
 # --------- Extract particles to be sent as ghosts and store in local buffers --------- #
 
 function extract_ghosts!(bufs, particles, x_min_local, x_max_local, R, rank)
-    n = length(particles)
-    n == 0 && return view(bufs.lefts, 1:0), view(bufs.rights, 1:0)
+    n = Int32(length(particles))
+    n == Int32(0) && return view(bufs.lefts, 1:0), view(bufs.rights, 1:0)
 
     workgroup_size = STD_WORKGROUP_SIZE
     num_workgroups = STD_NUM_WORKGROUPS
@@ -155,14 +155,14 @@ end #function
         x = p.x
         if x < x_min_local + R #Ghost to be sent left
             idx = CUDA.atomic_add!(pointer(counters, 1), Int32(1))
-            if idx <= buf_lengths
+            if idx < buf_lengths
                 lefts[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
                 CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
             end #if idx
         elseif x > x_max_local - R #Ghost to be sent right
             idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
-            if idx <= buf_lengths
+            if idx < buf_lengths
                 rights[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
                 CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))

@@ -20,7 +20,7 @@ function exchange_migrants!(
         numerical_params.x_min_local,
         numerical_params.x_max_local,
         numerical_params.R,
-        rank)
+        mpi_params.rank)
 
     #2) Serialise migrants to send over MPI, allocating extra space if required
     ensure_send_capacity!(mpi_bufs, ghost_bufs.buf_lengths, mpi_params.rank)
@@ -92,8 +92,8 @@ end #function
 # --------- Sort migrants from stayers and store in local buffers --------- #
 
 function sort_migrants!(bufs, particles, x_min_local, x_max_local, R, rank)
-    n = length(particles)
-    n == 0 && return view(bufs.stayers, 1:0), view(bufs.lefts, 1:0), view(bufs.rights, 1:0)
+    n = Int32(length(particles))
+    n == Int32(0) && return view(bufs.stayers, 1:0), view(bufs.lefts, 1:0), view(bufs.rights, 1:0)
 
     workgroup_size = STD_WORKGROUP_SIZE
     num_workgroups = STD_NUM_WORKGROUPS
@@ -165,7 +165,7 @@ end #function
         if x_min_local - R <= x < x_min_local
             #Particle is in the cell immediately to the left; moved to left domain
             idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
-            if idx <= buf_lengths
+            if idx < buf_lengths
                 lefts[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
                 CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
@@ -173,7 +173,7 @@ end #function
         elseif x < x_min_local - R
             #Particle has been wrapped round to the left; moved to "right" domain (PBCs)
             idx = CUDA.atomic_add!(pointer(counters, 3), Int32(1))
-            if idx <= buf_lengths
+            if idx < buf_lengths
                 rights[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
                 CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
@@ -181,7 +181,7 @@ end #function
         elseif x_max_local + R >= x > x_max_local
             #Particle is in the cell immediately to the right; moved to right domain
             idx = CUDA.atomic_add!(pointer(counters, 3), Int32(1))
-            if idx <= buf_lengths
+            if idx < buf_lengths
                 rights[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
                 CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
@@ -189,14 +189,14 @@ end #function
         elseif x > x_max_local + R
             #Particle has been wrapped round to the right; moved to "left" domain (PBCs)
             idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
-            if idx <= buf_lengths
+            if idx < buf_lengths
                 lefts[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
                 CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
             end #if idx
         else #Particle has remained in this domain
             idx = CUDA.atomic_add!(pointer(counters, 1), Int32(1))
-            if idx <= stayer_buf_length
+            if idx < stayer_buf_length
                 stayers[idx+1] = p
             else #No remaining space in buffer - raise overflow flag
                 CUDA.atomic_max!(pointer(stayer_overflow_flag, 1), Int32(1))

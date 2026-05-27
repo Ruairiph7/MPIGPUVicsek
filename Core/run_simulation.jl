@@ -5,28 +5,20 @@ function run_simulation(N_total, max_steps;
     λ::Float32=0.08f0,
     Lx::Int32=Int32(10),
     Ly::Int32=Lx,
-    v::Float32=Float32(1 / sqrt(π)),
-
-    max_particles_per_rank::Union{Int32,Nothing}=nothing,
+    v::Float32=Float32(1 / sqrt(π)), max_particles_per_rank::Union{Int32,Nothing}=nothing,
     max_sendrecv_particles::Union{Int32,Nothing}=nothing,
-    steps_to_shrink_buffers=maximum((max_steps ÷ 10, 100000)),
-
-    save_OPs=true,
+    steps_to_shrink_buffers=maximum((max_steps ÷ 10, 100000)), save_OPs=true,
     save_plots=true,
     save_coords=false,
     steps_to_save_OPs=100,
     steps_to_save_plots=100,
     steps_to_save_coords=10,
-    steps_to_new_OP_file::Int=500000,
-
-    inputs::Union{Nothing,NTuple{3,String},String}=nothing,
+    steps_to_new_OP_file::Int=500000, inputs::Union{Nothing,NTuple{3,String},String}=nothing,
     file_name_addon::String="",
     OP_dir::String="magnetisations",
     plots_dir::String="plots",
     markersize=0.5,
-    steps_to_log=maximum((max_steps ÷ 10, 1)),
-
-    ASYNC_SAVES::Union{Bool,Nothing}=nothing,
+    steps_to_log=maximum((max_steps ÷ 10, 1)), ASYNC_SAVES::Union{Bool,Nothing}=nothing,
     LOAD_FROM_SIMULATION::Bool=isa(inputs, String),
     LOG_WRITE_TIMES::Bool=false
 )
@@ -73,9 +65,9 @@ function run_simulation(N_total, max_steps;
     # --------- Store parameters --------- #
 
     # Characterise local domain
-    Lx_local = Lx / nprocs
-    x_min_local = rank * Lx_local
-    x_max_local = (rank + 1) * Lx_local
+    Lx_local = Float32(Lx / nprocs)
+    x_min_local = Float32(rank * Lx_local)
+    x_max_local = Float32((rank + 1) * Lx_local)
 
     #Store numerical parameters
     R² = R^2

@@ -130,8 +130,8 @@ function extract_ghosts!(bufs, particles, x_min_local, x_max_local, R, rank)
         attempt == 2 && error("extract_ghosts!: Still overflows on second attempt.")
 
         # Resize buffers
-        max_count = maximum(counters_cpu...)
-        new_buf_size = ceil(Int32, max_count * 1.5f0)
+        max_count = maximum(counters_cpu)
+        new_buf_size = maximum((bufs.buf_lengths * 2, ceil(Int32, max_count * 1.5f0)))
         bufs.lefts = CuVector{Particle}(undef, new_buf_size)
         bufs.rights = CuVector{Particle}(undef, new_buf_size)
         bufs.buf_lengths = new_buf_size

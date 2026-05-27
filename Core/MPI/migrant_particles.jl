@@ -130,8 +130,8 @@ function sort_migrants!(bufs, particles, x_min_local, x_max_local, R, rank)
 
         # Resize buffers
         if overflowed
-            max_count = maximum(counters_cpu[2], counters_cpu[3])
-            new_buf_size = ceil(Int32, max_count * 1.5f0)
+            max_count = maximum((counters_cpu[2], counters_cpu[3]))
+            new_buf_size = maximum((bufs.buf_lengths * 2, ceil(Int32, max_count * 1.5f0)))
             bufs.lefts = CuVector{Particle}(undef, new_buf_size)
             bufs.rights = CuVector{Particle}(undef, new_buf_size)
             bufs.buf_lengths = new_buf_size
@@ -139,7 +139,7 @@ function sort_migrants!(bufs, particles, x_min_local, x_max_local, R, rank)
         end #if overflowed
         if stayer_overflowed
             max_count = counters_cpu[1]
-            new_buf_size = ceil(Int32, max_count * 1.5f0)
+            new_buf_size = maximum((bufs.stayer_buf_length * 2, ceil(Int32, max_count * 1.5f0)))
             bufs.stayers = CuVector{Particle}(undef, new_buf_size)
             bufs.stayer_buf_length = new_buf_size
             println("Rank $rank raising stayer buffer size to $new_buf_size")

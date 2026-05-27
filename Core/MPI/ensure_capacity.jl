@@ -16,7 +16,7 @@ function ensure_recv_capacity!(sendrecv_bufs, left_size, right_size, rank)
     length_needed = maximum((left_size, right_size))
     sendrecv_bufs.buf_lengths >= length_needed && return nothing
 
-    new_max = Ceil(Int32, length_needed * 1.5f0)
+    new_max = maximum((round(Int32,sendrecv_bufs.buf_lengths*1.5f0), ceil(Int32, length_needed * 1.5f0))
     sendrecv_bufs.send_left = CuVector{UInt32}(undef, new_max)
     sendrecv_bufs.send_right = CuVector{UInt32}(undef, new_max)
     sendrecv_bufs.recv_left = CuVector{UInt32}(undef, new_max)

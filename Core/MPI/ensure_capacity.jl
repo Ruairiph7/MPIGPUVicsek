@@ -13,7 +13,7 @@ function ensure_send_capacity!(sendrecv_bufs, max_num, rank)
 end #function
 
 function ensure_recv_capacity!(sendrecv_bufs, left_size, right_size, rank)
-    length_needed = maximum(left_size, right_size)
+    length_needed = maximum((left_size, right_size))
     sendrecv_bufs.buf_lengths >= length_needed && return nothing
 
     new_max = Ceil(Int32, length_needed * 1.5f0)

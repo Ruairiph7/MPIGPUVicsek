@@ -30,7 +30,7 @@ function exchange_ghosts!(
         ghosts_left_view,
         ghosts_right_view,
         GHOST_FLAG=true,
-        Lx=mpi_params.Lx,
+        Lx=numerical_params.Lx,
         rank=mpi_params.rank,
         nprocs=mpi_params.nprocs)
 

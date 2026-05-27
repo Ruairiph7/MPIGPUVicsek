@@ -113,7 +113,7 @@ function run_simulation(N_total, max_steps;
 
     #Set max_sendrecv_particles - i.e. maximum ghosts/migrants in a given direction
     if isnothing(max_sendrecv_particles)
-        max_sendrecv_particles = maximum(ceil(Int32, 2 * R_max * N_total / Lx), Int32(1000))
+        max_sendrecv_particles = maximum(ceil(Int32, 2 * R * N_total / Lx), Int32(1000))
         rank == 0 && @show max_sendrecv_particles
     end #if
 

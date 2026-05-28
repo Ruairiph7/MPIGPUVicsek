@@ -1,22 +1,22 @@
 # --------- Particle data structures --------- #
 
 struct Particle
-    x::Float32
-    y::Float32
-    θ::Float32
-    uid::Int32 # "Unique id"
+    x::Float64
+    y::Float64
+    θ::Float64
+    uid::Int64 # "Unique id"
 end #struct
 
 
 # --------- Initialise structures for particle updates --------- #
 
 function initialise_θ_updates(N)
-    return CUDA.zeros(Float32, N)
+    return CUDA.zeros(Float64, N)
 end #function
 
 function initialise_rand_bufs(N)
-    rand1 = CUDA.zeros(Float32, N)
-    rand2 = CUDA.zeros(Float32, N)
+    rand1 = CUDA.zeros(Float64, N)
+    rand2 = CUDA.zeros(Float64, N)
     return (; rand1, rand2)
 end #function
 
@@ -25,19 +25,19 @@ end #function
 
 function initialise_coords(N, Lx, Ly=Lx; input_files::Union{Nothing,NTuple{3,String}}=nothing)
     if isnothing(input_files)
-        xs = [Lx * rand(Float32) for i in 1:N]
-        ys = [Ly * rand(Float32) for i in 1:N]
-        θs = [Float32(2π * rand()) for i = 1:N]
-        uids = [Int32(i) for i = 1:N]
+        xs = [Lx * rand(Float64) for i in 1:N]
+        ys = [Ly * rand(Float64) for i in 1:N]
+        θs = [Float64(2π * rand()) for i = 1:N]
+        uids = [Int64(i) for i = 1:N]
     else
         # Assume input_files=("input_xs.txt","input_ys.txt","input_thetas.txt")
-        xs = Float32.(vec(readdlm(input_files[1])))
-        ys = Float32.(vec(readdlm(input_files[2])))
-        θs = Float32.(vec(readdlm(input_files[3])))
+        xs = Float64.(vec(readdlm(input_files[1])))
+        ys = Float64.(vec(readdlm(input_files[2])))
+        θs = Float64.(vec(readdlm(input_files[3])))
         length(xs) != N && error("Wrong number of particles in x input file")
         length(ys) != N && error("Wrong number of particles in y input file")
         length(θs) != N && error("Wrong number of particles in theta input file")
-        uids = [Int32(i) for i = 1:N]
+        uids = [Int64(i) for i = 1:N]
     end #if
     return xs, ys, θs, uids
 end #function
@@ -52,10 +52,10 @@ function initialise_particles(max_particles_per_rank, input_files, numerical_par
     comm = mpi_params.comm
 
     #Initialise particles on rank 0 and broadcast to others
-    xs_all = Vector{Float32}(undef, N_total)
-    ys_all = Vector{Float32}(undef, N_total)
-    θs_all = Vector{Float32}(undef, N_total)
-    uids_all = Vector{Int32}(undef, N_total)
+    xs_all = Vector{Float64}(undef, N_total)
+    ys_all = Vector{Float64}(undef, N_total)
+    θs_all = Vector{Float64}(undef, N_total)
+    uids_all = Vector{Int64}(undef, N_total)
     if rank == 0
         xs_all, ys_all, θs_all, uids_all = initialise_coords(N_total, Lx, Ly, input_files=input_files)
     end #if
@@ -134,10 +134,10 @@ end #function
 # --------- Unpack particles into coordinates --------- #
 
 function unpack_coords(particles_array::Array{Particle})
-    xs = zeros(Float32, length(particles_array))
-    ys = zeros(Float32, length(particles_array))
-    θs = zeros(Float32, length(particles_array))
-    uids = zeros(Int32, length(particles_array))
+    xs = zeros(Float64, length(particles_array))
+    ys = zeros(Float64, length(particles_array))
+    θs = zeros(Float64, length(particles_array))
+    uids = zeros(Int64, length(particles_array))
     @inbounds for i = 1:length(particles_array)
         particle_i = particles_array[i]
         xs[i] = particle_i.x

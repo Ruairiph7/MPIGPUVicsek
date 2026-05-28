@@ -8,7 +8,7 @@
 #   - workgroup_size = TILE_SIZE, so all threads always participate in tile loading
 #   - For TILE_SIZE=128, shared memory usage of tile_size * sizeof(Particle) = 128 * 16 = 2 KB per workgroup
 
-@inline function F(θ::Float32, inv_πR²::Float32)
+@inline function F(θ::Float64, inv_πR²::Float64)
     return sin(θ) * inv_πR²
 end #function
 
@@ -50,8 +50,8 @@ end #function
     R², inv_πR², 
     γ, dt)
 
-    group_idx = Int32(@index(Group, Linear))
-    local_tidx = Int32(@index(Local, Linear))
+    group_idx = Int64(@index(Group, Linear))
+    local_tidx = Int64(@index(Local, Linear))
 
     # Exit immediately for workgroups beyond num_occupied
     @uniform max_group_idx = num_occupied[1]
@@ -66,15 +66,15 @@ end #function
 
 
         # --------- Loop over batches --------- #
-        batch_offset = Int32(0)
+        batch_offset = Int64(0)
 
         while batch_offset < cell_count
 
             # Get each thread's particle in this batch
-            p_offset = batch_offset + local_tidx - Int32(1)
+            p_offset = batch_offset + local_tidx - Int64(1)
             VALID_IDX = p_offset < cell_count
             p_idx = cell_start + p_offset
-            p_i = VALID_IDX ? sorted_particles[p_idx] : Particle(0.0f0, 0.0f0, 0.0f0, Int32(0))
+            p_i = VALID_IDX ? sorted_particles[p_idx] : Particle(0.0, 0.0, 0.0, Int64(0))
 
             # Load this thread's particle position and angle
             # (will only read later if valid so safe to load unconditionally)
@@ -82,36 +82,36 @@ end #function
             y_i = p_i.y
             θ_i = p_i.θ
 
-            F_sum_local = 0.0f0
-            n_local = 0.0f0
+            F_sum_local = 0.0
+            n_local = 0.0
 
 
             # --------- Loop over neighbouring cells (including self) --------- #
-            for nghbr in Int32(1):Int32(9)
+            for nghbr in Int64(1):Int64(9)
 
                 nghbr_idx = cell_neighbours[nghbr, cell_idx]
                 nghbr_start = cell_starts[nghbr_idx]
                 nghbr_count = cell_counts[nghbr_idx]
 
-                if nghbr_count > Int32(0)
+                if nghbr_count > Int64(0)
 
                     # --------- Loop over tiles --------- #
-                    tile_offset = Int32(0)
+                    tile_offset = Int64(0)
 
                     while tile_offset < nghbr_count
 
                         #Fix tile size to TILE_SIZE, or number of remaining particles if < TILE_SIZE
-                        this_tile_size = min(Int32(TILE_SIZE), nghbr_count - tile_offset)
+                        this_tile_size = min(Int64(TILE_SIZE), nghbr_count - tile_offset)
 
                         if local_tidx <= this_tile_size
                             shared_tile[local_tidx] = sorted_particles[
-                                nghbr_start+tile_offset+local_tidx-Int32(1)]
+                                nghbr_start+tile_offset+local_tidx-Int64(1)]
                         end #if local_tidx
                         @synchronize #Ensure tile is fully loaded before any thread reads it
 
                         #If the thread corresponds to a valid particle, find its interactions with this tile
                         if VALID_IDX
-                            for j in Int32(1):this_tile_size
+                            for j in Int64(1):this_tile_size
                                 p_j = shared_tile[j]
                                 Δx = x_i - p_j.x
                                 Δy = y_i - p_j.y
@@ -120,24 +120,24 @@ end #function
                                 Δr² = Δx * Δx + Δy * Δy
                                 θ_ij = p_j.θ - θ_i
 
-                                WITHIN_R = Float32(Δr² < R²)
+                                WITHIN_R = Float64(Δr² < R²)
                                 F_sum_local += WITHIN_R * F(θ_ij, inv_πR²)
                                 n_local += WITHIN_R
                             end #for j
                         end #if VALID_IDX
                         @synchronize #Ensure all threads are done before the next load
 
-                        tile_offset += Int32(TILE_SIZE)
+                        tile_offset += Int64(TILE_SIZE)
                     end #while tile_offset
                 end #if nghbr_count
             end #for nghbr
 
             # Each entry written by exactly one thread in exactly one batch — no atomics needed
             if VALID_IDX
-                θ_updates[perm[p_idx]] = n_local > 0.0f0 ? γ * F_sum_local * dt / n_local : 0.0f0
+                θ_updates[perm[p_idx]] = n_local > 0.0 ? γ * F_sum_local * dt / n_local : 0.0
             end #if
 
-            batch_offset += Int32(TILE_SIZE)
+            batch_offset += Int64(TILE_SIZE)
         end #while batch_offset
     end #if group_idx
 end #function

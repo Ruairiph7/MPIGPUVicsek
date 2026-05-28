@@ -33,8 +33,8 @@ function exchange_migrants!(
     send_right = view(mpi_bufs.send_right, 1:getindex(send_right_count))
 
     #3) Exchange counts with neighbours and prepare space to receive
-    recv_left_count = Ref{Int32}(0)
-    recv_right_count = Ref{Int32}(0)
+    recv_left_count = Ref{Int64}(0)
+    recv_right_count = Ref{Int64}(0)
 
     migrant_count_left_tag = 301
     migrant_count_right_tag = 302
@@ -92,8 +92,8 @@ end #function
 # --------- Sort migrants from stayers and store in local buffers --------- #
 
 function sort_migrants!(bufs, particles, x_min_local, x_max_local, R, rank)
-    n = Int32(length(particles))
-    n == Int32(0) && return view(bufs.stayers, 1:0), view(bufs.lefts, 1:0), view(bufs.rights, 1:0)
+    n = Int64(length(particles))
+    n == Int64(0) && return view(bufs.stayers, 1:0), view(bufs.lefts, 1:0), view(bufs.rights, 1:0)
 
     workgroup_size = STD_WORKGROUP_SIZE
     num_workgroups = STD_NUM_WORKGROUPS
@@ -101,9 +101,9 @@ function sort_migrants!(bufs, particles, x_min_local, x_max_local, R, rank)
     kernel! = sort_migrants_kernel!(CUDABackend())
 
     for attempt in 1:2 #Make two attempts, allocate extra space if the first overflows
-        fill!(bufs.counters, Int32(0))
-        fill!(bufs.overflow_flag, Int32(0))
-        fill!(bufs.stayer_overflow_flag, Int32(0))
+        fill!(bufs.counters, Int64(0))
+        fill!(bufs.overflow_flag, Int64(0))
+        fill!(bufs.stayer_overflow_flag, Int64(0))
 
         kernel!(
             bufs.stayers, bufs.lefts, bufs.rights, bufs.counters,
@@ -116,8 +116,8 @@ function sort_migrants!(bufs, particles, x_min_local, x_max_local, R, rank)
         KernelAbstractions.synchronize(CUDABackend())
 
         counters_cpu = Array(bufs.counters)
-        overflowed = Array(bufs.overflow_flag)[1] != Int32(0)
-        stayer_overflowed = Array(bufs.stayer_overflow_flag)[1] != Int32(0)
+        overflowed = Array(bufs.overflow_flag)[1] != Int64(0)
+        stayer_overflowed = Array(bufs.stayer_overflow_flag)[1] != Int64(0)
 
         if !overflowed && !stayer_overflowed
             return (
@@ -131,7 +131,7 @@ function sort_migrants!(bufs, particles, x_min_local, x_max_local, R, rank)
         # Resize buffers
         if overflowed
             max_count = maximum((counters_cpu[2], counters_cpu[3]))
-            new_buf_size = maximum((bufs.buf_lengths * 2, ceil(Int32, max_count * 1.5f0)))
+            new_buf_size = maximum((bufs.buf_lengths * 2, ceil(Int64, max_count * 1.5)))
             bufs.lefts = CuVector{Particle}(undef, new_buf_size)
             bufs.rights = CuVector{Particle}(undef, new_buf_size)
             bufs.buf_lengths = new_buf_size
@@ -139,7 +139,7 @@ function sort_migrants!(bufs, particles, x_min_local, x_max_local, R, rank)
         end #if overflowed
         if stayer_overflowed
             max_count = counters_cpu[1]
-            new_buf_size = maximum((bufs.stayer_buf_length * 2, ceil(Int32, max_count * 1.5f0)))
+            new_buf_size = maximum((bufs.stayer_buf_length * 2, ceil(Int64, max_count * 1.5)))
             bufs.stayers = CuVector{Particle}(undef, new_buf_size)
             bufs.stayer_buf_length = new_buf_size
             println("Rank $rank raising stayer buffer size to $new_buf_size")
@@ -156,50 +156,50 @@ end #function
     x_min_local, x_max_local,
     R)
 
-    I = Int32(@index(Global, Linear))
-    stride = Int32(@ndrange()[1])
+    I = Int64(@index(Global, Linear))
+    stride = Int64(@ndrange()[1])
 
     for i = I:stride:n
         p = particles[i]
         x = p.x
         if (x_min_local - R <= x) && (x < x_min_local)
             #Particle is in the cell immediately to the left; moved to left domain
-            idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
+            idx = CUDA.atomic_add!(pointer(counters, 2), Int64(1))
             if idx < buf_lengths
                 lefts[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
-                CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
+                CUDA.atomic_max!(pointer(overflow_flag, 1), Int64(1))
             end #if idx
         elseif x < x_min_local - R
             #Particle has been wrapped round to the left; moved to "right" domain (PBCs)
-            idx = CUDA.atomic_add!(pointer(counters, 3), Int32(1))
+            idx = CUDA.atomic_add!(pointer(counters, 3), Int64(1))
             if idx < buf_lengths
                 rights[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
-                CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
+                CUDA.atomic_max!(pointer(overflow_flag, 1), Int64(1))
             end #if idx
         elseif (x_max_local + R >= x) && (x > x_max_local)
             #Particle is in the cell immediately to the right; moved to right domain
-            idx = CUDA.atomic_add!(pointer(counters, 3), Int32(1))
+            idx = CUDA.atomic_add!(pointer(counters, 3), Int64(1))
             if idx < buf_lengths
                 rights[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
-                CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
+                CUDA.atomic_max!(pointer(overflow_flag, 1), Int64(1))
             end #if idx
         elseif x > x_max_local + R
             #Particle has been wrapped round to the right; moved to "left" domain (PBCs)
-            idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
+            idx = CUDA.atomic_add!(pointer(counters, 2), Int64(1))
             if idx < buf_lengths
                 lefts[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
-                CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
+                CUDA.atomic_max!(pointer(overflow_flag, 1), Int64(1))
             end #if idx
         else #Particle has remained in this domain
-            idx = CUDA.atomic_add!(pointer(counters, 1), Int32(1))
+            idx = CUDA.atomic_add!(pointer(counters, 1), Int64(1))
             if idx < stayer_buf_length
                 stayers[idx+1] = p
             else #No remaining space in buffer - raise overflow flag
-                CUDA.atomic_max!(pointer(stayer_overflow_flag, 1), Int32(1))
+                CUDA.atomic_max!(pointer(stayer_overflow_flag, 1), Int64(1))
             end #if idx
         end #if
     end #for i

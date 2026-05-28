@@ -1,4 +1,4 @@
-const two_π_f32 = Float32(2 * π)
+const two_π_f64 = Float64(2 * π)
 
 function update_particles!(particles, θ_updates, numerical_params, rand_bufs)
     num_particles = length(particles)
@@ -39,8 +39,8 @@ end #function
     @Const(rand2),
     num_particles
 )
-    I = Int32(@index(Global, Linear))
-    stride = Int32(@ndrange()[1])
+    I = Int64(@index(Global, Linear))
+    stride = Int64(@ndrange()[1])
 
     for i = I:stride:num_particles
         this_particle = particles[i]
@@ -51,7 +51,7 @@ end #function
         this_rand1 = rand1[i]
         if this_rand1 < λ * dt
             this_rand2 = rand2[i]
-            this_θ_update = two_π_f32 * this_rand2 - θ_i
+            this_θ_update = two_π_f64 * this_rand2 - θ_i
         else
             this_θ_update = θ_updates[i]
         end #if

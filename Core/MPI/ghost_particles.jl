@@ -1,4 +1,4 @@
-const GHOST_TOLERANCE::Float32 = 1f-6
+const GHOST_TOLERANCE::Float64 = 1e-6
 
 function exchange_ghosts!(
     mpi_bufs,
@@ -40,8 +40,8 @@ function exchange_ghosts!(
     send_right = view(mpi_bufs.send_right, 1:getindex(send_right_count))
 
     #3) Exchange counts with neighbours and prepare space to receive
-    recv_left_count = Ref{Int32}(0)
-    recv_right_count = Ref{Int32}(0)
+    recv_left_count = Ref{Int64}(0)
+    recv_right_count = Ref{Int64}(0)
 
     ghost_count_left_tag = 101
     ghost_count_right_tag = 102
@@ -99,8 +99,8 @@ end #function
 # --------- Extract particles to be sent as ghosts and store in local buffers --------- #
 
 function extract_ghosts!(bufs, particles, x_min_local, x_max_local, R, rank)
-    n = Int32(length(particles))
-    n == Int32(0) && return view(bufs.lefts, 1:0), view(bufs.rights, 1:0)
+    n = Int64(length(particles))
+    n == Int64(0) && return view(bufs.lefts, 1:0), view(bufs.rights, 1:0)
 
     workgroup_size = STD_WORKGROUP_SIZE
     num_workgroups = STD_NUM_WORKGROUPS
@@ -108,8 +108,8 @@ function extract_ghosts!(bufs, particles, x_min_local, x_max_local, R, rank)
     kernel! = extract_ghosts_kernel!(CUDABackend(), workgroup_size)
 
     for attempt in 1:2 #Make two attempts, allocate extra space if the first overflows
-        fill!(bufs.counters, Int32(0))
-        fill!(bufs.overflow_flag, Int32(0))
+        fill!(bufs.counters, Int64(0))
+        fill!(bufs.overflow_flag, Int64(0))
 
         kernel!(
             bufs.lefts, bufs.rights, bufs.counters,
@@ -121,7 +121,7 @@ function extract_ghosts!(bufs, particles, x_min_local, x_max_local, R, rank)
         KernelAbstractions.synchronize(CUDABackend())
 
         counters_cpu = Array(bufs.counters)
-        overflowed = Array(bufs.overflow_flag)[1] != Int32(0)
+        overflowed = Array(bufs.overflow_flag)[1] != Int64(0)
 
         if !overflowed
             return (
@@ -133,7 +133,7 @@ function extract_ghosts!(bufs, particles, x_min_local, x_max_local, R, rank)
 
         # Resize buffers
         max_count = maximum(counters_cpu)
-        new_buf_size = maximum((bufs.buf_lengths * 2, ceil(Int32, max_count * 1.5f0)))
+        new_buf_size = maximum((bufs.buf_lengths * 2, ceil(Int64, max_count * 1.5)))
         bufs.lefts = CuVector{Particle}(undef, new_buf_size)
         bufs.rights = CuVector{Particle}(undef, new_buf_size)
         bufs.buf_lengths = new_buf_size
@@ -149,26 +149,26 @@ end #function
     x_min_local, x_max_local,
     R)
 
-    I = Int32(@index(Global, Linear))
-    stride = Int32(@ndrange()[1])
+    I = Int64(@index(Global, Linear))
+    stride = Int64(@ndrange()[1])
 
     for i = I:stride:n
         p = particles[i]
         x = p.x
         if x <= x_min_local + R + GHOST_TOLERANCE #Ghost to be sent left
-            idx = CUDA.atomic_add!(pointer(counters, 1), Int32(1))
+            idx = CUDA.atomic_add!(pointer(counters, 1), Int64(1))
             if idx < buf_lengths
                 lefts[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
-                CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
+                CUDA.atomic_max!(pointer(overflow_flag, 1), Int64(1))
             end #if idx
         end #if x
         if x >= x_max_local - R - GHOST_TOLERANCE #Ghost to be sent right
-            idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
+            idx = CUDA.atomic_add!(pointer(counters, 2), Int64(1))
             if idx < buf_lengths
                 rights[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
-                CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
+                CUDA.atomic_max!(pointer(overflow_flag, 1), Int64(1))
             end #if idx
         end #if x
     end #for j

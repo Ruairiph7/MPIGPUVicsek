@@ -1,12 +1,12 @@
 function run_simulation(N_total, max_steps;
-    dt::Float32=0.1f0,
-    R::Float32=Float32(1 / sqrt(π)),
-    γ::Float32=0.5f0,
-    λ::Float32=0.08f0,
-    Lx::Int32=Int32(10),
-    Ly::Int32=Lx,
-    v::Float32=Float32(1 / sqrt(π)), max_particles_per_rank::Union{Int32,Nothing}=nothing,
-    max_sendrecv_particles::Union{Int32,Nothing}=nothing,
+    dt::Float64=0.1,
+    R::Float64=Float64(1 / sqrt(π)),
+    γ::Float64=0.5,
+    λ::Float64=0.08,
+    Lx::Int64=Int64(10),
+    Ly::Int64=Lx,
+    v::Float64=Float64(1 / sqrt(π)), max_particles_per_rank::Union{Int64,Nothing}=nothing,
+    max_sendrecv_particles::Union{Int64,Nothing}=nothing,
     steps_to_shrink_buffers=maximum((max_steps ÷ 10, 100000)), save_OPs=true,
     save_plots=true,
     save_coords=false,
@@ -65,21 +65,21 @@ function run_simulation(N_total, max_steps;
     # --------- Store parameters --------- #
 
     # Characterise local domain
-    Lx_local = Float32(Lx / nprocs)
-    x_min_local = Float32(rank * Lx_local)
-    x_max_local = Float32((rank + 1) * Lx_local)
-    if rank == 0 && Lx_local <= 2*R
+    Lx_local = Float64(Lx / nprocs)
+    x_min_local = Float64(rank * Lx_local)
+    x_max_local = Float64((rank + 1) * Lx_local)
+    if rank == 0 && Lx_local <= 2 * R
         @warn "Narrow domains - potential issues with ghost particles: Lx_local <= 2R ($Lx_local <= $(2*R))"
     end #if rank
 
     #Store numerical parameters
     R² = R^2
-    inv_πR² = Float32(1.0f0 / (π * R²))
+    inv_πR² = Float64(1.0 / (π * R²))
     numerical_params = (; N_total,
         dt, R, R², inv_πR², γ, λ, v,
         Lx, Ly, Lx_local,
         x_min_local, x_max_local)
-    if rank == 0 && v*dt >= R
+    if rank == 0 && v * dt >= R
         error("Particles move too fast for migrant detection: v*dt >= R ($(v*dt) >= $R)")
     end #if rank
 
@@ -99,13 +99,13 @@ function run_simulation(N_total, max_steps;
 
     #Set max_particles_per_rank
     if isnothing(max_particles_per_rank)
-        max_particles_per_rank = maximum((ceil(Int32, 2 * N_total / nprocs), Int32(10000)))
+        max_particles_per_rank = maximum((ceil(Int64, 2 * N_total / nprocs), Int64(10000)))
         rank == 0 && @show max_particles_per_rank
     end #if
 
     #Set max_sendrecv_particles - i.e. maximum ghosts/migrants in a given direction
     if isnothing(max_sendrecv_particles)
-        max_sendrecv_particles = maximum((ceil(Int32, 2 * R * N_total / Lx), Int32(1000)))
+        max_sendrecv_particles = maximum((ceil(Int64, 2 * R * N_total / Lx), Int64(1000)))
         rank == 0 && @show max_sendrecv_particles
     end #if
 
@@ -197,7 +197,7 @@ function run_simulation(N_total, max_steps;
         extended_num_local_particles = num_local_particles + n_left + n_right
 
         if extended_num_local_particles > max_particles_per_rank
-            max_particles_per_rank = ceil(Int32, extended_num_local_particles * 1.1) #Raise maximum
+            max_particles_per_rank = ceil(Int64, extended_num_local_particles * 1.1) #Raise maximum
             println("Rank $rank: Rasing max_particles_per_rank to $max_particles_per_rank")
 
             # Reset particles array (stash on CPU to avoid excess GPU memory use)
@@ -215,7 +215,7 @@ function run_simulation(N_total, max_steps;
 
             #Else: try to lower maximum every steps_to_shrink_buffers steps
         elseif time_step % steps_to_shrink_buffers == 0 && max_particles_per_rank > 1.7 * extended_num_local_particles
-            max_particles_per_rank = maximum((ceil(Int32, extended_num_local_particles * 1.7), Int32(10000)))
+            max_particles_per_rank = maximum((ceil(Int64, extended_num_local_particles * 1.7), Int64(10000)))
             println("Rank $rank: Lowering max_particles_per_rank to $max_particles_per_rank")
 
             # Reset particles array (stash on CPU to avoid excess GPU memory use)
@@ -274,7 +274,7 @@ function run_simulation(N_total, max_steps;
         num_local_particles = n_stay + n_left + n_right
 
         if num_local_particles > max_particles_per_rank
-            max_particles_per_rank = ceil(Int32, num_local_particles * 1.1) #Raise maximum
+            max_particles_per_rank = ceil(Int64, num_local_particles * 1.1) #Raise maximum
             println("Rank $rank: Rasing max_particles_per_rank to $max_particles_per_rank")
 
             #Reinitialise relevant data structures

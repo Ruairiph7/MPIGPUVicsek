@@ -68,6 +68,9 @@ function run_simulation(N_total, max_steps;
     Lx_local = Float32(Lx / nprocs)
     x_min_local = Float32(rank * Lx_local)
     x_max_local = Float32((rank + 1) * Lx_local)
+    if rank == 0 && Lx_local <= 2*R
+        @warn "Narrow domains - potential issues with ghost particles: Lx_local <= 2R ($Lx_local <= $(2*R))"
+    end #if rank
 
     #Store numerical parameters
     R² = R^2
@@ -76,6 +79,9 @@ function run_simulation(N_total, max_steps;
         dt, R, R², inv_πR², γ, λ, v,
         Lx, Ly, Lx_local,
         x_min_local, x_max_local)
+    if rank == 0 && v*dt >= R
+        error("Particles move too fast for migrant detection: v*dt >= R ($(v*dt) >= $R)")
+    end #if rank
 
     #Store output parameters
     output_params = (; save_OPs,

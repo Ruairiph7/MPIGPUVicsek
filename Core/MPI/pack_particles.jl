@@ -20,14 +20,15 @@ function pack_particles!(
     total_num_threads = workgroup_size * num_workgroups
     kernel! = pack_particles_kernel!(CUDABackend())
 
-    x_offset = 0.0f0
     if n_left != 0
+        x_offset = 0.0f0
         GHOST_FLAG && (rank == 0) && (x_offset = Float32(Lx))
         kernel!(view(bufs.send_left, 1:4*n_left), lefts, n_left, x_offset; ndrange=total_num_threads)
         KernelAbstractions.synchronize(CUDABackend())
     end #if 
 
     if n_right != 0
+        x_offset = 0.0f0
         GHOST_FLAG && (rank == nprocs - 1) && (x_offset = Float32(-Lx))
         kernel!(view(bufs.send_right, 1:4*n_right), rights, n_right, x_offset; ndrange=total_num_threads)
         KernelAbstractions.synchronize(CUDABackend())

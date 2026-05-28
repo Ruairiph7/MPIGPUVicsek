@@ -28,6 +28,7 @@ function initialise_coords(N, Lx, Ly=Lx; input_files::Union{Nothing,NTuple{3,Str
         xs = [Lx * rand(Float32) for i in 1:N]
         ys = [Ly * rand(Float32) for i in 1:N]
         θs = [Float32(2π * rand()) for i = 1:N]
+        uids = [Int32(i) for i = 1:N]
     else
         # Assume input_files=("input_xs.txt","input_ys.txt","input_thetas.txt")
         xs = Float32.(vec(readdlm(input_files[1])))
@@ -36,8 +37,9 @@ function initialise_coords(N, Lx, Ly=Lx; input_files::Union{Nothing,NTuple{3,Str
         length(xs) != N && error("Wrong number of particles in x input file")
         length(ys) != N && error("Wrong number of particles in y input file")
         length(θs) != N && error("Wrong number of particles in theta input file")
+        uids = [Int32(i) for i = 1:N]
     end #if
-    return xs, ys, θs
+    return xs, ys, θs, uids
 end #function
 
 function initialise_particles(max_particles_per_rank, input_files, numerical_params, mpi_params)
@@ -53,12 +55,14 @@ function initialise_particles(max_particles_per_rank, input_files, numerical_par
     xs_all = Vector{Float32}(undef, N_total)
     ys_all = Vector{Float32}(undef, N_total)
     θs_all = Vector{Float32}(undef, N_total)
+    uids_all = Vector{Int32}(undef, N_total)
     if rank == 0
-        xs_all, ys_all, θs_all = initialise_coords(N_total, Lx, Ly, input_files=input_files)
+        xs_all, ys_all, θs_all, uids_all = initialise_coords(N_total, Lx, Ly, input_files=input_files)
     end #if
     MPI.Bcast!(xs_all, 0, comm)
     MPI.Bcast!(ys_all, 0, comm)
     MPI.Bcast!(θs_all, 0, comm)
+    MPI.Bcast!(uids_all, 0, comm)
 
     # Get particles in local domain
     in_local_domain(x) = (x_min_local <= x < x_max_local)
@@ -66,16 +70,10 @@ function initialise_particles(max_particles_per_rank, input_files, numerical_par
     xs_filtered = xs_all[local_particle_idxs]
     ys_filtered = ys_all[local_particle_idxs]
     θs_filtered = θs_all[local_particle_idxs]
+    uids_filtered = uids_all[local_particle_idxs]
 
-    N_local = length(xs_filtered)
-    N_offset = MPI.Exscan(N_local, +, comm)
-    rank == 0 && (N_offset = 0)
-
-    # Create local particles on CPU, using N_offset to assign unique IDs that hold globally
-    local_particles_cpu = [
-        Particle(x, y, θ, Int32(N_offset + i))
-        for (i, (x, y, θ)) in enumerate(zip(xs_filtered, ys_filtered, θs_filtered))
-    ]
+    # Create local particles on CPU
+    local_particles_cpu = [Particle(x, y, θ, uid) for (x, y, θ, uid) in zip(xs_filtered, ys_filtered, θs_filtered, uids_filtered)]
     num_local_particles = length(local_particles_cpu)
     num_local_particles > max_particles_per_rank && error("Too many particles on rank " * string(rank))
 

@@ -162,7 +162,7 @@ end #function
     for i = I:stride:n
         p = particles[i]
         x = p.x
-        if x_min_local - R <= x < x_min_local
+        if (x_min_local - R <= x) && (x < x_min_local)
             #Particle is in the cell immediately to the left; moved to left domain
             idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
             if idx < buf_lengths
@@ -178,7 +178,7 @@ end #function
             else #No remaining space in buffers - raise overflow flag
                 CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
             end #if idx
-        elseif x_max_local + R >= x > x_max_local
+        elseif (x_max_local + R >= x) && (x > x_max_local)
             #Particle is in the cell immediately to the right; moved to right domain
             idx = CUDA.atomic_add!(pointer(counters, 3), Int32(1))
             if idx < buf_lengths

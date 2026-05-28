@@ -1,3 +1,5 @@
+const GHOST_TOLERANCE::Float32 = 1f-6
+
 function exchange_ghosts!(
     mpi_bufs,
     local_particles,
@@ -153,14 +155,15 @@ end #function
     for i = I:stride:n
         p = particles[i]
         x = p.x
-        if x < x_min_local + R #Ghost to be sent left
+        if x <= x_min_local + R + GHOST_TOLERANCE #Ghost to be sent left
             idx = CUDA.atomic_add!(pointer(counters, 1), Int32(1))
             if idx < buf_lengths
                 lefts[idx+1] = p
             else #No remaining space in buffers - raise overflow flag
                 CUDA.atomic_max!(pointer(overflow_flag, 1), Int32(1))
             end #if idx
-        elseif x > x_max_local - R #Ghost to be sent right
+        end #if x
+        if x >= x_max_local - R - GHOST_TOLERANCE #Ghost to be sent right
             idx = CUDA.atomic_add!(pointer(counters, 2), Int32(1))
             if idx < buf_lengths
                 rights[idx+1] = p

@@ -1,7 +1,7 @@
 # MPIGPUVicsek
 Large-scale simulations of Vicsek-type models using CUDA-aware MPI with the Julia programming language.
 
-Note this was written for Julia Version 1.11.1 (2024-10-16).
+Note this was written for Julia Version 1.11.5 (2025-04-14). It has been tested for CUDA version 12.3, 12.6 and 13.2.
 
 https://github.com/user-attachments/assets/a73e9483-84e8-4321-a2aa-dfc8ab76a564
 
@@ -9,12 +9,12 @@ https://github.com/user-attachments/assets/a73e9483-84e8-4321-a2aa-dfc8ab76a564
 
 ## 1) Install Julia
 - Pick installation directory, e.g. a "work" directory - ```export WORK="/scratch/user"```
-- Install Julia 1.11.1:
+- Install Julia 1.11.5:
 ```
 cd $WORK
-wget https://julialang-s3.julialang.org/bin/linux/x64/1.11/julia-1.11.1-linux-x86_64.tar.gz
-tar zxvf julia-1.11.1-linux-x86_64.tar.gz
-rm ./julia-1.11.1-linux-x86_64.tar.gz
+wget https://julialang-s3.julialang.org/bin/linux/x64/1.11/julia-1.11.5-linux-x86_64.tar.gz
+tar zxvf julia-1.11.5-linux-x86_64.tar.gz
+rm ./julia-1.11.5-linux-x86_64.tar.gz
 ```
 
 - Make a directory for packages:
@@ -26,7 +26,7 @@ mkdir ./.julia
 ```
 export WORK="/scratch/user"
 export JULIA_DEPOT_PATH="$WORK/.julia"
-export PATH="$PATH:$WORK/julia-1.11.1/bin"
+export PATH="$PATH:$WORK/julia-1.11.5/bin"
 export PATH="$PATH:$JULIA_DEPOT_PATH/bin"
 ```
 
@@ -97,7 +97,14 @@ ompi_info | grep -i cuda
 ompi_info --parsable --all | grep mpi_built_with_cuda_support:value
 ```
 
-- If these prove successful, then to configure MPI.jl first make sure that the installation is in the correct PATH environment variables outside of Julia. If ```which mpirun``` returns ```/xxx/yyy/zzz/bin/mpirun```, then call:
+- If these prove successful, next load Julia and tell it which MPI installation to use:
+```
+using MPIPreferences
+MPIPreferences.use_system_binary()
+```
+If this returns errors, then the following is a possible route to attempt to manually configure MPI.jl:
+
+- First make sure that the installation is in the correct PATH environment variables outside of Julia. If ```which mpirun``` returns ```/xxx/yyy/zzz/bin/mpirun```, then call:
 ```
 export PATH=/xxx/yyy/zzz/bin/:$PATH
 export LD_LIBRARY_PATH=/xxx/yyy/zzz/lib:$LD_LIBRARY_PATH
@@ -113,7 +120,7 @@ MPIPreferences.use_system_binary(
 )
 ```
 
-- If this does not return any error messages, then restart Julia to implement the changes and check that the correct MPI installation is being used:
+Once this command is working, then restart Julia to implement the changes and check that the correct MPI installation is being used:
 ```
 using Pkg
 Pkg.build("MPI")

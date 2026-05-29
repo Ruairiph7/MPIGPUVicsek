@@ -23,6 +23,12 @@ function run_simulation(N_total, max_steps;
     LOG_WRITE_TIMES::Bool=false
 )
 
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+    #NOTE: For benchmarking:
+    @warn "DOING BENCHMARKING...."
+    local_initialisation_time_start = time()
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+
     # --------- Prepare for MPI --------- #
 
     comm = MPI.COMM_WORLD
@@ -173,11 +179,27 @@ function run_simulation(N_total, max_steps;
     # --------- Perform simulation --------- #
 
     rank == 0 && println("Starting simulation...")
+
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+    #NOTE: For benchmarking:
+    @warn "DOING BENCHMARKING...."
+    local_initialisation_time = time() - local_initialisation_time_start
+    writedlm("initialisation_time_rank_$(rank)_$file_name_addon.txt", local_initialisation_time)
+
+    local_times = zeros(max_steps)
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+
     for time_step = 1:max_steps
 
         if rank == 0 && time_step % steps_to_log == 0
             println("--------- Step: $time_step ---------")
         end #if
+
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+        #NOTE: For benchmarking:
+        MPI.Barrier(comm)
+        start_time = MPI.Wtime()
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 
 
         # --------- Ghost particle exchange --------- #
@@ -321,6 +343,14 @@ function run_simulation(N_total, max_steps;
         end #if
 
         KernelAbstractions.synchronize(CUDABackend())
+
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+        #NOTE: For benchmarking:
+        MPI.Barrier(comm)
+        local_times[time_step] = MPI.Wtime() - start_time
+        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+
+
     end #for time_step
 
 
@@ -339,8 +369,15 @@ function run_simulation(N_total, max_steps;
     GC.gc() #Encourage GC to collect old pinned buffer
 
 
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+    ##NOTE: For benchmarking:
+    writedlm("times_rank_$(rank)_$file_name_addon.txt", local_times)
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
+
+
     MPI.Barrier(comm)
     return nothing
 end #function
+
 
 

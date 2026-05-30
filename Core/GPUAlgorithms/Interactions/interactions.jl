@@ -1,4 +1,5 @@
 include("./build_histogram.jl")
 include("./assign_cell_starts.jl")
 include("./sort_particles.jl")
+include("./TileSizes/tilesizes.jl")
 include("./calculate_interactions.jl")

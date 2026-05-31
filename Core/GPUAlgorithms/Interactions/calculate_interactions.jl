@@ -14,6 +14,8 @@ end #function
 function calculate_interactions!(θ_updates, cells_data, cell_list_params, numerical_params)
 
     max_cell_count = maximum(cells_data.cell_counts)
+    sum_cell_counts² = sum(n -> n * n, cells_data.cell_counts)
+    dense_fraction = max_cell_count^2 / sum_cell_counts²
 
     if max_cell_count < 256
         tile_size = 32
@@ -21,13 +23,19 @@ function calculate_interactions!(θ_updates, cells_data, cell_list_params, numer
         num_workgroups = cell_list_params.num_cells
         total_num_threads = workgroup_size * num_workgroups
         kernel! = calculate_interactions_kernel_32!(CUDABackend(), workgroup_size)
-    elseif max_cell_count < 512
+    elseif dense_fraction < 0.05
+        tile_size = 32
+        workgroup_size = tile_size
+        num_workgroups = cell_list_params.num_cells
+        total_num_threads = workgroup_size * num_workgroups
+        kernel! = calculate_interactions_kernel_32!(CUDABackend(), workgroup_size)
+    elseif dense_fraction < 0.2
         tile_size = 64
         workgroup_size = tile_size
         num_workgroups = cell_list_params.num_cells
         total_num_threads = workgroup_size * num_workgroups
         kernel! = calculate_interactions_kernel_64!(CUDABackend(), workgroup_size)
-    elseif max_cell_count < 1024
+    elseif dense_fraction < 0.5
         tile_size = 128
         workgroup_size = tile_size
         num_workgroups = cell_list_params.num_cells

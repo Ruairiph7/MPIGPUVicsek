@@ -111,7 +111,7 @@ function load_particles(max_particles_per_rank, inputs_dir, numerical_params, mp
     num_local_particles = length(local_particles_cpu)
 
     #Check configuration is valid
-    in_local_domain(p::Particle) = (x_min_local <= p.x < x_max_local)
+    in_local_domain(p::Particle) = (x_min_local <= p.x <= x_max_local)
     in_global_domain(p::Particle) = (0 <= p.x <= Lx) && (0 <= p.y <= Ly)
     any(!in_local_domain, local_particles_cpu) && error("Rank $rank: Not all particles in local domain")
     any(!in_global_domain, local_particles_cpu) && error("Rank $rank: Not all particles in global domain")

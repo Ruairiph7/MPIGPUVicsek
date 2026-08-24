@@ -3,8 +3,9 @@ const two_π_f32 = Float32(2 * π)
 function update_particles!(particles, θ_updates, numerical_params, rand_bufs)
     num_particles = length(particles)
 
-    cuRAND.rand!(rand_bufs.rand1)
-    cuRAND.rand!(rand_bufs.rand2)
+    # cuRAND.rand!(rand_bufs.rand1)
+    cuRAND.randn!(rand_bufs.rand1)
+    # cuRAND.rand!(rand_bufs.rand2)
 
     workgroup_size = STD_WORKGROUP_SIZE
     num_workgroups = STD_NUM_WORKGROUPS
@@ -48,17 +49,18 @@ end #function
         y_i = this_particle.y
         θ_i = this_particle.θ
         uid_i = this_particle.uid
-        this_rand1 = rand1[i]
-        if this_rand1 < λ * dt
-            this_rand2 = rand2[i]
-            this_θ_update = two_π_f32 * this_rand2 - θ_i
-        else
-            this_θ_update = θ_updates[i]
-        end #if
+        # this_rand1 = rand1[i]
+        # if this_rand1 < λ * dt
+        #     this_rand2 = rand2[i]
+        #     this_θ_update = two_π_f32 * this_rand2 - θ_i
+        # else
+        #     this_θ_update = θ_updates[i]
+        # end #if
 
         x_i = mod(x_i + dt * v * cos(θ_i), Lx)
         y_i = mod(y_i + dt * v * sin(θ_i), Ly)
-        θ_i = θ_i + this_θ_update
+        # θ_i = θ_i + this_θ_update
+        θ_i = θ_i + θ_updates[i] + sqrt(2*λ*dt) * rand1[i]
         particles[i] = Particle(x_i, y_i, θ_i, uid_i)
     end #for i
 end #function

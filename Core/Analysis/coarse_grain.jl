@@ -235,8 +235,9 @@ function _coarse_grain(cell_list_params::CellListParams, cell_lists::CellLists, 
                 this_box_my = this_box_my ./ this_box_num_particles
             end #if
 
-            density_array[i, j] = this_box_num_particles / box_area #Calculate density
-            vec_magnetisation_array[i, j] = [this_box_mx, this_box_my]
+            this_box_density = this_box_num_particles / box_area 
+            density_array[i, j] = this_box_density
+            vec_magnetisation_array[i, j] = [this_box_mx, this_box_my] .* this_box_density
         end #for j
     end #for i
 
@@ -289,9 +290,10 @@ function _coarse_grain_nematic_too(cell_list_params::CellListParams, cell_lists:
                 this_box_Sy = this_box_Sy ./ this_box_num_particles
             end #if
 
-            density_array[i, j] = this_box_num_particles / box_area #Calculate density
-            vec_magnetisation_array[i, j] = [this_box_mx, this_box_my]
-            vec_nematic_array[i, j] = [this_box_Sx, this_box_Sy]
+            this_box_density = this_box_num_particles / box_area 
+            density_array[i, j] = this_box_density
+            vec_magnetisation_array[i, j] = [this_box_mx, this_box_my] .* this_box_density
+            vec_nematic_array[i, j] = [this_box_Sx, this_box_Sy] .* this_box_density
         end #for j
     end #for i
 

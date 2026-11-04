@@ -237,7 +237,8 @@ function _coarse_grain(cell_list_params::CellListParams, cell_lists::CellLists, 
 
             this_box_density = this_box_num_particles / box_area 
             density_array[i, j] = this_box_density
-            vec_magnetisation_array[i, j] = [this_box_mx, this_box_my] .* this_box_density
+            # vec_magnetisation_array[i, j] = [this_box_mx, this_box_my] .* this_box_density
+            vec_magnetisations_array[i, j] = [this_box_m, this_box_my]
         end #for j
     end #for i
 

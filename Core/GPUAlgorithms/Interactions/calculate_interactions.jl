@@ -8,10 +8,6 @@
 #   - workgroup_size = TILE_SIZE, so all threads always participate in tile loading
 #   - For TILE_SIZE=128, shared memory usage of tile_size * sizeof(Particle) = 128 * 16 = 2 KB per workgroup
 
-@inline function F(θ::Float32, inv_πR²::Float32)
-    return sin(θ) * inv_πR²
-end #function
-
 function calculate_interactions!(θ_updates, cells_data, cell_list_params, numerical_params)
     workgroup_size = TILE_SIZE
     num_workgroups = cell_list_params.num_cells
@@ -57,7 +53,7 @@ end #function
     @uniform max_group_idx = num_occupied[1]
     if group_idx <= max_group_idx
 
-        shared_tile = @localmem Particle TILE_SIZE
+        shared_tile = @localmem InteractionParticle TILE_SIZE
 
         # Uniform values - same for all threads in workgrooup
         @uniform cell_idx = occupied_cells[group_idx]
@@ -82,6 +78,8 @@ end #function
             y_i = p_i.y
             θ_i = p_i.θ
 
+            sin_θ_i, cos_θ_i = sincos(θ_i)
+
             F_sum_local = 0.0f0
             n_local = 0.0f0
 
@@ -104,8 +102,10 @@ end #function
                         this_tile_size = min(Int32(TILE_SIZE), nghbr_count - tile_offset)
 
                         if local_tidx <= this_tile_size
-                            shared_tile[local_tidx] = sorted_particles[
+                            p = sorted_particles[
                                 nghbr_start+tile_offset+local_tidx-Int32(1)]
+                            s, c = sincos(p.θ)
+                            shared_tile[local_tidx] = InteractionParticle(p.x, p.y, s, c)
                         end #if local_tidx
                         @synchronize #Ensure tile is fully loaded before any thread reads it
 
@@ -118,10 +118,10 @@ end #function
                                 Δx -= Lx * round(Δx / Lx)
                                 Δy -= Ly * round(Δy / Ly)
                                 Δr² = Δx * Δx + Δy * Δy
-                                θ_ij = p_j.θ - θ_i
+                                sin_θ_ij = p_j.sinθ * cos_θ_i - p_j.cosθ * sin_θ_i
 
                                 WITHIN_R = Float32(Δr² < R²)
-                                F_sum_local += WITHIN_R * F(θ_ij, inv_πR²)
+                                F_sum_local += WITHIN_R * sin_θ_ij
                                 n_local += WITHIN_R
                             end #for j
                         end #if VALID_IDX
@@ -134,7 +134,7 @@ end #function
 
             # Each entry written by exactly one thread in exactly one batch — no atomics needed
             if VALID_IDX
-                θ_updates[perm[p_idx]] = n_local > 0.0f0 ? γ * F_sum_local * dt / n_local : 0.0f0
+                θ_updates[perm[p_idx]] = n_local > 0.0f0 ? γ * inv_πR² * F_sum_local * dt / n_local : 0.0f0
             end #if
 
             batch_offset += Int32(TILE_SIZE)

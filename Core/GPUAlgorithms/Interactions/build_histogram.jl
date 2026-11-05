@@ -2,7 +2,7 @@
 
 function build_histogram!(cells_data, cell_list_params, particles, num_particles)
     fill!(cells_data.cell_counts, Int32(0))
-    fill!(cells_data.num_occupied, Int32(0))
+    fill!(cells_data.num_dense, Int32(0))
 
     workgroup_size = STD_WORKGROUP_SIZE
     num_workgroups = STD_NUM_WORKGROUPS
@@ -12,8 +12,8 @@ function build_histogram!(cells_data, cell_list_params, particles, num_particles
     kernel!(
         cells_data.cell_counts,
         cells_data.cell_indices,
-        cells_data.occupied_cells,
-        cells_data.num_occupied,
+        cells_data.dense_cells,
+        cells_data.num_dense,
         cell_list_params.x_min_cells,
         cell_list_params.num_cells_x,
         cell_list_params.num_cells_y,
@@ -29,8 +29,8 @@ end #function
 @kernel function build_histogram_kernel!(
     cell_counts,
     cell_indices,
-    occupied_cells,
-    num_occupied,
+    dense_cells,
+    num_dense,
     x_min_cells,
     num_cells_x,
     num_cells_y,
@@ -48,9 +48,9 @@ end #function
         cell_indices[i] = c
         old_cell_count = CUDA.atomic_add!(pointer(cell_counts, c), Int32(1))
 
-        if old_cell_count == Int32(0)
-            old_num_occupied = CUDA.atomic_add!(pointer(num_occupied, Int32(1)), Int32(1))
-            occupied_cells[old_num_occupied+Int32(1)] = c
+        if old_cell_count == DENSE_THRESHOLD - Int32(1)
+            old_num_dense = CUDA.atomic_add!(pointer(num_dense, Int32(1)), Int32(1))
+            dense_cells[old_num_dense+Int32(1)] = c
         end #if old_cell_count
     end #for i
 end #function

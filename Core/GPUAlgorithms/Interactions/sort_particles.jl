@@ -35,8 +35,6 @@ end #function
     for i = I:stride:num_particles
         c = cell_indices[i]
         pos = CUDA.atomic_add!(pointer(cell_starts_scratch, c), Int32(1))
-        # sorted_particles[pos] = particles[i]
-        # perm[pos] = i
         p = particles[i]
         s,c = sincos(p.θ)
         sorted_particles[pos] = InteractionParticle(p.x, p.y, s, c)

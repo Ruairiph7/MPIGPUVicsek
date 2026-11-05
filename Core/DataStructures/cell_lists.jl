@@ -48,7 +48,8 @@ end #function
 struct CellList
     # Per-particle (length N)
     cell_indices::CuVector{Int32} #Cell index of each particle; 1-based
-    sorted_particles::CuVector{Particle} #Particles sorted by cell index
+    # sorted_particles::CuVector{Particle} #Particles sorted by cell index
+    sorted_particles::CuVector{InteractionParticle} #Particles sorted by cell index
     perm::CuVector{Int32} #Permutation from sorted particle indices to absolute ones
 
     # Per-cell (length num_cells)
@@ -64,7 +65,8 @@ end #struct
 
 CellList(cell_list_params::CellListParams, N) = CellList(
     CUDA.zeros(Int32, N),
-    CuVector{Particle}(undef, N),
+    # CuVector{Particle}(undef, N),
+    CuVector{InteractionParticle}(undef, N),
     CUDA.zeros(Int32, N),
     CUDA.zeros(Int32, cell_list_params.num_cells),
     CUDA.zeros(Int32, cell_list_params.num_cells),

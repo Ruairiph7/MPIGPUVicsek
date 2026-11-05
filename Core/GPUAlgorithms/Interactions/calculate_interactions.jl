@@ -8,10 +8,13 @@
 #   - workgroup_size = TILE_SIZE, so all threads always participate in tile loading
 #   - For TILE_SIZE=128, shared memory usage of tile_size * sizeof(Particle) = 128 * 16 = 2 KB per workgroup
 
+
 function calculate_interactions!(θ_updates, cells_data, cell_list_params, numerical_params)
     workgroup_size = TILE_SIZE
     num_workgroups = cell_list_params.num_cells
     total_num_threads = workgroup_size * num_workgroups
+
+    coef = Float32(numerical_params.γ * numerical_params.dt * numerical_params.inv_πR²)
 
     kernel! = calculate_interactions_kernel!(CUDABackend(), workgroup_size)
     kernel!(
@@ -25,11 +28,15 @@ function calculate_interactions!(θ_updates, cells_data, cell_list_params, numer
         cells_data.num_occupied,
         numerical_params.Lx,
         numerical_params.Ly,
+        1.0f0/numerical_params.Lx,
+        1.0f0/numerical_params.Ly,
         numerical_params.R²,
-        numerical_params.inv_πR²,
-        numerical_params.γ,
-        numerical_params.dt;
+        coef,
         ndrange=total_num_threads)
+        # numerical_params.inv_πR²,
+        # numerical_params.γ,
+        # numerical_params.dt;
+        # ndrange=total_num_threads)
     # KernelAbstractions.synchronize(CUDABackend())
 end #function
 
@@ -43,8 +50,10 @@ end #function
     @Const(occupied_cells),
     @Const(num_occupied),
     Lx, Ly,
-    R², inv_πR², 
-    γ, dt)
+    inv_Lx, inv_Ly,
+    R², coef)
+    # R², inv_πR², 
+    # γ, dt)
 
     group_idx = Int32(@index(Group, Linear))
     local_tidx = Int32(@index(Local, Linear))
@@ -70,15 +79,18 @@ end #function
             p_offset = batch_offset + local_tidx - Int32(1)
             VALID_IDX = p_offset < cell_count
             p_idx = cell_start + p_offset
-            p_i = VALID_IDX ? sorted_particles[p_idx] : Particle(0.0f0, 0.0f0, 0.0f0, Int32(0))
+            # p_i = VALID_IDX ? sorted_particles[p_idx] : Particle(0.0f0, 0.0f0, 0.0f0, Int32(0))
+            p_i = VALID_IDX ? sorted_particles[p_idx] : InteractionParticle(0.0f0, 0.0f0, 0.0f0, 0.0f0)
 
             # Load this thread's particle position and angle
             # (will only read later if valid so safe to load unconditionally)
             x_i = p_i.x
             y_i = p_i.y
-            θ_i = p_i.θ
+            # θ_i = p_i.θ
+            sin_θ_i = p_i.sinθ
+            cos_θ_i = p_i.cosθ
 
-            sin_θ_i, cos_θ_i = sincos(θ_i)
+            # sin_θ_i, cos_θ_i = sincos(θ_i)
 
             F_sum_local = 0.0f0
             n_local = 0.0f0
@@ -102,10 +114,13 @@ end #function
                         this_tile_size = min(Int32(TILE_SIZE), nghbr_count - tile_offset)
 
                         if local_tidx <= this_tile_size
-                            p = sorted_particles[
-                                nghbr_start+tile_offset+local_tidx-Int32(1)]
-                            s, c = sincos(p.θ)
-                            shared_tile[local_tidx] = InteractionParticle(p.x, p.y, s, c)
+                            # p = sorted_particles[
+                            #     nghbr_start+tile_offset+local_tidx-Int32(1)]
+                            # s, c = sincos(p.θ)
+                            # shared_tile[local_tidx] = InteractionParticle(p.x, p.y, s, c)
+                            shared_tile[local_tidx] = sorted_particles[
+                                        nghbr_start+tile_offset+local_tidx-Int32(1)]
+                                                        
                         end #if local_tidx
                         @synchronize #Ensure tile is fully loaded before any thread reads it
 
@@ -115,8 +130,8 @@ end #function
                                 p_j = shared_tile[j]
                                 Δx = x_i - p_j.x
                                 Δy = y_i - p_j.y
-                                Δx -= Lx * round(Δx / Lx)
-                                Δy -= Ly * round(Δy / Ly)
+                                Δx -= Lx * round(Δx * inv_Lx)
+                                Δy -= Ly * round(Δy * inv_Ly)
                                 Δr² = Δx * Δx + Δy * Δy
                                 sin_θ_ij = p_j.sinθ * cos_θ_i - p_j.cosθ * sin_θ_i
 
@@ -134,7 +149,8 @@ end #function
 
             # Each entry written by exactly one thread in exactly one batch — no atomics needed
             if VALID_IDX
-                θ_updates[perm[p_idx]] = n_local > 0.0f0 ? γ * inv_πR² * F_sum_local * dt / n_local : 0.0f0
+                # θ_updates[perm[p_idx]] = n_local > 0.0f0 ? γ * inv_πR² * F_sum_local * dt / n_local : 0.0f0
+                θ_updates[perm[p_idx]] = n_local > 0.0f0 ? coef * F_sum_local / n_local : 0.0f0
             end #if
 
             batch_offset += Int32(TILE_SIZE)

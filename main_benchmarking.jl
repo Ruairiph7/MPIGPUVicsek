@@ -3,7 +3,9 @@
 import_time_start = time()
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 
-const TILE_SIZE = 128
+# const TILE_SIZE = 128
+const TILE_SIZE = 32
+const DENSE_THRESHOLD=16
 const STD_WORKGROUP_SIZE = 256
 const STD_NUM_WORKGROUPS = 512
 

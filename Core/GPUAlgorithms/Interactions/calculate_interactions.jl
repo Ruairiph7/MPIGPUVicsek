@@ -99,8 +99,8 @@ end #function
 
                 for j in nghbr_start:nghbr_end
                     p_j = sorted_particles[j]
-                    Δx = x_i - p_j.x
-                    Δy = y_i - p_j.y
+                    Δx = p_i.x - p_j.x
+                    Δy = p_i.y - p_j.y
                     Δx -= Lx * round(Δx * inv_Lx)
                     Δy -= Ly * round(Δy * inv_Ly)
                     WITHIN_R = Float32(Δx * Δx + Δy * Δy < R²)

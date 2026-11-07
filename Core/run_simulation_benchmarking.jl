@@ -15,7 +15,7 @@ function run_simulation(N_total, max_steps;
     steps_to_save_coords=10,
     steps_to_new_OP_file::Int=500000, inputs::Union{Nothing,NTuple{3,String},String}=nothing,
     file_name_addon::String="",
-    OP_dir::String="magnetisations",
+    OP_dir::String="polarisations",
     plots_dir::String="plots",
     markersize=0.5,
     steps_to_log=maximum((max_steps ÷ 10, 1)), ASYNC_SAVES::Union{Bool,Nothing}=nothing,
@@ -127,7 +127,7 @@ function run_simulation(N_total, max_steps;
         if save_OPs
             mkpath(OP_dir)
             OP_file_number = 1
-            OP_file = open("$OP_dir/ms_$(file_name_addon)_$(lpad(OP_file_number,6,"0")).txt", "w")
+            OP_file = open("$OP_dir/ps_$(file_name_addon)_$(lpad(OP_file_number,6,"0")).txt", "w")
         end #if save_OPs
     end #if
 
@@ -336,10 +336,10 @@ function run_simulation(N_total, max_steps;
                 numerical_params, mpi_params)
         end #if
 
-        if rank == 0 && (time_step % steps_to_new_OP_file == 0) && (time_step != max_steps)
+        if save_OPs && (rank == 0) && (time_step % steps_to_new_OP_file == 0) && (time_step != max_steps)
             OP_file_number = OP_file_number + 1
             close(OP_file)
-            OP_file = open("$OP_dir/ms_$(file_name_addon)_$(lpad(OP_file_number,6,"0")).txt", "w")
+            OP_file = open("$OP_dir/ps_$(file_name_addon)_$(lpad(OP_file_number,6,"0")).txt", "w")
         end #if
 
         KernelAbstractions.synchronize(CUDABackend())

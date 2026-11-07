@@ -3,11 +3,10 @@
 import_time_start = time()
 #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!#
 
-# const TILE_SIZE = 128
-const TILE_SIZE = 32
-const DENSE_THRESHOLD=16
-const STD_WORKGROUP_SIZE = 256
-const STD_NUM_WORKGROUPS = 512
+!@isdefined TILE_SIZE && (const TILE_SIZE = 32)
+!@isdefined DENSE_THRESHOLD && (const DENSE_THRESHOLD = 16)
+!@isdefined STD_WORKGROUP_SIZE && (const STD_WORKGROUP_SIZE = 256)
+!@isdefined STD_NUM_WORKGROUPS && (const STD_NUM_WORKGROUPS = 512)
 
 include("./Core/DataStructures/datastructures.jl")
 include("./Core/GPUAlgorithms/gpualgorithms.jl")

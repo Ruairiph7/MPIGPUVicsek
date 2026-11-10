@@ -14,9 +14,9 @@ function calculate_interactions!(θ_updates, cells_data, cell_list_params, numer
     dense_total_num_threads = dense_workgroup_size * dense_num_workgroups
     dense_kernel! = dense_interactions_kernel!(CUDABackend(), dense_workgroup_size)
 
-    coef = Float32(numerical_params.γ * numerical_params.dt * numerical_params.inv_πR²)
-    Lx = Float32(numerical_params.Lx)
-    Ly = Float32(numerical_params.Ly)
+    coef = Float64(numerical_params.γ * numerical_params.dt * numerical_params.inv_πR²)
+    Lx = Float64(numerical_params.Lx)
+    Ly = Float64(numerical_params.Ly)
 
     sparse_kernel!(
         θ_updates,
@@ -32,8 +32,8 @@ function calculate_interactions!(θ_updates, cells_data, cell_list_params, numer
         cell_list_params.inv_cell_size_y,
         Lx,
         Ly,
-        1.0f0 / Lx,
-        1.0f0 / Ly,
+        1.0 / Lx,
+        1.0 / Ly,
         numerical_params.R²,
         coef,
         num_particles,
@@ -50,8 +50,8 @@ function calculate_interactions!(θ_updates, cells_data, cell_list_params, numer
         cells_data.num_dense,
         Lx,
         Ly,
-        1.0f0 / Lx,
-        1.0f0 / Ly,
+        1.0 / Lx,
+        1.0 / Ly,
         numerical_params.R²,
         coef,
         ndrange=dense_total_num_threads)
@@ -80,22 +80,22 @@ end #function
     R², coef,
     num_particles)
 
-    I = Int32(@index(Global, Linear))
-    stride = Int32(@ndrange()[1])
+    I = Int64(@index(Global, Linear))
+    stride = Int64(@ndrange()[1])
 
     for i = I:stride:num_particles
         p_i = sorted_particles[i]
         c_i = get_cell_ID(p_i.x, p_i.y, x_min_cells, num_cells_x, num_cells_y, inv_cell_size_x, inv_cell_size_y)
 
         if cell_counts[c_i] < DENSE_THRESHOLD
-            cos_sum = 0.0f0
-            sin_sum = 0.0f0
-            n = 0.0f0
+            cos_sum = 0.0
+            sin_sum = 0.0
+            n = 0.0
 
-            for nghbr in Int32(1):Int32(9)
+            for nghbr in Int64(1):Int64(9)
                 nghbr_idx = cell_neighbours[nghbr, c_i]
                 nghbr_start = cell_starts[nghbr_idx]
-                nghbr_end = nghbr_start + cell_counts[nghbr_idx] - Int32(1)
+                nghbr_end = nghbr_start + cell_counts[nghbr_idx] - Int64(1)
 
                 for j in nghbr_start:nghbr_end
                     p_j = sorted_particles[j]
@@ -103,7 +103,7 @@ end #function
                     Δy = p_i.y - p_j.y
                     Δx -= Lx * round(Δx * inv_Lx)
                     Δy -= Ly * round(Δy * inv_Ly)
-                    WITHIN_R = Float32(Δx * Δx + Δy * Δy < R²)
+                    WITHIN_R = Float64(Δx * Δx + Δy * Δy < R²)
 
                     cos_sum += WITHIN_R * p_j.cosθ
                     sin_sum += WITHIN_R * p_j.sinθ
@@ -112,7 +112,7 @@ end #function
             end #for nghbr
 
             F_sum = p_i.cosθ * sin_sum - p_i.sinθ * cos_sum
-            θ_updates[perm[i]] = n > 0.0f0 ? coef * F_sum / n : 0.0f0
+            θ_updates[perm[i]] = n > 0.0 ? coef * F_sum / n : 0.0
         end #if cell_counts
 
     end #for i
@@ -143,8 +143,8 @@ end #function sparse_interactions_kernel!
     inv_Lx, inv_Ly,
     R², coef)
 
-    group_idx = Int32(@index(Group, Linear))
-    local_tidx = Int32(@index(Local, Linear))
+    group_idx = Int64(@index(Group, Linear))
+    local_tidx = Int64(@index(Local, Linear))
 
     # Exit immediately for workgroups beyond num_dense
     @uniform max_group_idx = num_dense[1]
@@ -159,15 +159,15 @@ end #function sparse_interactions_kernel!
 
 
         # --------- Loop over batches --------- #
-        batch_offset = Int32(0)
+        batch_offset = Int64(0)
 
         while batch_offset < cell_count
 
             # Get each thread's particle in this batch
-            p_offset = batch_offset + local_tidx - Int32(1)
+            p_offset = batch_offset + local_tidx - Int64(1)
             VALID_IDX = p_offset < cell_count
             p_idx = cell_start + p_offset
-            p_i = VALID_IDX ? sorted_particles[p_idx] : InteractionParticle(0.0f0, 0.0f0, 0.0f0, 0.0f0)
+            p_i = VALID_IDX ? sorted_particles[p_idx] : InteractionParticle(0.0, 0.0, 0.0, 0.0)
 
             # Load this thread's particle position and angle
             # (will only read later if valid so safe to load unconditionally)
@@ -176,36 +176,36 @@ end #function sparse_interactions_kernel!
             sin_θ_i = p_i.sinθ
             cos_θ_i = p_i.cosθ
 
-            F_sum_local = 0.0f0
-            n_local = 0.0f0
+            F_sum_local = 0.0
+            n_local = 0.0
 
 
             # --------- Loop over neighbouring cells (including self) --------- #
-            for nghbr in Int32(1):Int32(9)
+            for nghbr in Int64(1):Int64(9)
 
                 nghbr_idx = cell_neighbours[nghbr, cell_idx]
                 nghbr_start = cell_starts[nghbr_idx]
                 nghbr_count = cell_counts[nghbr_idx]
 
-                if nghbr_count > Int32(0)
+                if nghbr_count > Int64(0)
 
                     # --------- Loop over tiles --------- #
-                    tile_offset = Int32(0)
+                    tile_offset = Int64(0)
 
                     while tile_offset < nghbr_count
 
                         #Fix tile size to TILE_SIZE, or number of remaining particles if < TILE_SIZE
-                        this_tile_size = min(Int32(TILE_SIZE), nghbr_count - tile_offset)
+                        this_tile_size = min(Int64(TILE_SIZE), nghbr_count - tile_offset)
 
                         if local_tidx <= this_tile_size
                             shared_tile[local_tidx] = sorted_particles[
-                                nghbr_start+tile_offset+local_tidx-Int32(1)]
+                                nghbr_start+tile_offset+local_tidx-Int64(1)]
                         end #if local_tidx
                         @synchronize #Ensure tile is fully loaded before any thread reads it
 
                         #If the thread corresponds to a valid particle, find its interactions with this tile
                         if VALID_IDX
-                            for j in Int32(1):this_tile_size
+                            for j in Int64(1):this_tile_size
                                 p_j = shared_tile[j]
                                 Δx = x_i - p_j.x
                                 Δy = y_i - p_j.y
@@ -214,24 +214,24 @@ end #function sparse_interactions_kernel!
                                 Δr² = Δx * Δx + Δy * Δy
                                 sin_θ_ij = p_j.sinθ * cos_θ_i - p_j.cosθ * sin_θ_i
 
-                                WITHIN_R = Float32(Δr² < R²)
+                                WITHIN_R = Float64(Δr² < R²)
                                 F_sum_local += WITHIN_R * sin_θ_ij
                                 n_local += WITHIN_R
                             end #for j
                         end #if VALID_IDX
                         @synchronize #Ensure all threads are done before the next load
 
-                        tile_offset += Int32(TILE_SIZE)
+                        tile_offset += Int64(TILE_SIZE)
                     end #while tile_offset
                 end #if nghbr_count
             end #for nghbr
 
             # Each entry written by exactly one thread in exactly one batch — no atomics needed
             if VALID_IDX
-                θ_updates[perm[p_idx]] = n_local > 0.0f0 ? coef * F_sum_local / n_local : 0.0f0
+                θ_updates[perm[p_idx]] = n_local > 0.0 ? coef * F_sum_local / n_local : 0.0
             end #if
 
-            batch_offset += Int32(TILE_SIZE)
+            batch_offset += Int64(TILE_SIZE)
         end #while batch_offset
     end #if group_idx
 end #function dense_interactions_kernel!

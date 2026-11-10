@@ -24,11 +24,11 @@ end #function
     @Const(cell_starts_inclusive),
     num_cells)
 
-    I = Int32(@index(Global, Linear))
-    stride = Int32(@ndrange()[1])
+    I = Int64(@index(Global, Linear))
+    stride = Int64(@ndrange()[1])
 
     for c = I:stride:num_cells
-        cell_starts[c] = c == Int32(1) ? Int32(1) :
-                         cell_starts_inclusive[c-Int32(1)] + Int32(1)
+        cell_starts[c] = c == Int64(1) ? Int64(1) :
+                         cell_starts_inclusive[c-Int64(1)] + Int64(1)
     end #for c
 end #function

@@ -7,17 +7,17 @@ using DelimitedFiles
 # include("../DataStructures/particles.jl")
 
 struct Particle
-    x::Float32
-    y::Float32
-    θ::Float32
-    uid::Int32 #"Unique id"
+    x::Float64
+    y::Float64
+    θ::Float64
+    uid::Int64 #"Unique id"
 end
 
 function unpack_coords(particles_array::Array{Particle})
-    xs = zeros(Float32, length(particles_array))
-    ys = zeros(Float32, length(particles_array))
-    θs = zeros(Float32, length(particles_array))
-    uids = zeros(Int32, length(particles_array))
+    xs = zeros(Float64, length(particles_array))
+    ys = zeros(Float64, length(particles_array))
+    θs = zeros(Float64, length(particles_array))
+    uids = zeros(Int64, length(particles_array))
     @inbounds for i = 1:length(particles_array)
         particle_i = particles_array[i]
         xs[i] = particle_i.x
@@ -49,10 +49,10 @@ function load_coords_from_timestep(timestep_dir::String; nprocs::Union{Nothing,I
     N_total = sum(length.(particle_arrays))
     coord_arrays = unpack_coords.(particle_arrays)
 
-    xs = Vector{Float32}(undef, N_total)
+    xs = Vector{Float64}(undef, N_total)
     ys = similar(xs)
     θs = similar(xs)
-    uids = Vector{Int32}(undef, N_total)
+    uids = Vector{Int64}(undef, N_total)
 
     N_so_far = 0
     for proc_idx = 1:nprocs
@@ -82,9 +82,9 @@ function get_full_trajectories(; base_dir::String="./", outputs_dir_name::String
     timestep_dirs = get_timestep_dirs(base_dir=base_dir, outputs_dir_name=outputs_dir_name)
     num_steps = length(timestep_dirs)
     time_steps = Vector{Int}(undef, num_steps)
-    xs = Vector{Vector{Float32}}(undef, num_steps)
-    ys = Vector{Vector{Float32}}(undef, num_steps)
-    θs = Vector{Vector{Float32}}(undef, num_steps)
+    xs = Vector{Vector{Float64}}(undef, num_steps)
+    ys = Vector{Vector{Float64}}(undef, num_steps)
+    θs = Vector{Vector{Float64}}(undef, num_steps)
 
     for tidx = 1:num_steps
         timestep_dir = timestep_dirs[tidx]
@@ -110,10 +110,10 @@ function load_coords_and_ranks_from_timestep(timestep_dir::String; nprocs::Union
     N_total = sum(length.(particle_arrays))
     coord_arrays = unpack_coords.(particle_arrays)
 
-    xs = Vector{Float32}(undef, N_total)
+    xs = Vector{Float64}(undef, N_total)
     ys = similar(xs)
     θs = similar(xs)
-    uids = Vector{Int32}(undef, N_total)
+    uids = Vector{Int64}(undef, N_total)
     ranks = similar(uids)
 
     N_so_far = 0
@@ -148,10 +148,10 @@ function get_full_trajectories_and_ranks(; base_dir::String="./", outputs_dir_na
     timestep_dirs = get_timestep_dirs(base_dir=base_dir, outputs_dir_name=outputs_dir_name)
     num_steps = length(timestep_dirs)
     time_steps = Vector{Int}(undef, num_steps)
-    xs = Vector{Vector{Float32}}(undef, num_steps)
-    ys = Vector{Vector{Float32}}(undef, num_steps)
-    θs = Vector{Vector{Float32}}(undef, num_steps)
-    ranks = Vector{Vector{Int32}}(undef, num_steps)
+    xs = Vector{Vector{Float64}}(undef, num_steps)
+    ys = Vector{Vector{Float64}}(undef, num_steps)
+    θs = Vector{Vector{Float64}}(undef, num_steps)
+    ranks = Vector{Vector{Int64}}(undef, num_steps)
 
     for tidx = 1:num_steps
         timestep_dir = timestep_dirs[tidx]

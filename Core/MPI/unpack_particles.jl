@@ -23,15 +23,15 @@ function unpack_particles!(particles, base_num_particles, left_buf, right_buf)
 end #function
 
 @kernel function unpack_particles_kernel!(out, @Const(buf), size)
-    I = Int32(@index(Global, Linear))
-    stride = Int32(@ndrange()[1])
+    I = Int64(@index(Global, Linear))
+    stride = Int64(@ndrange()[1])
 
     for i = I:stride:size
         base = 4 * (i - 1)
-        x = reinterpret(Float32, buf[base+1])
-        y = reinterpret(Float32, buf[base+2])
-        θ = reinterpret(Float32, buf[base+3])
-        uid = reinterpret(Int32, buf[base+4])
+        x = reinterpret(Float64, buf[base+1])
+        y = reinterpret(Float64, buf[base+2])
+        θ = reinterpret(Float64, buf[base+3])
+        uid = reinterpret(Int64, buf[base+4])
         out[i] = Particle(x, y, θ, uid)
     end #for i
 end #function

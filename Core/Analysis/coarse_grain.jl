@@ -198,7 +198,7 @@ function _initialise_grid(xs::Vector{<:Real}, ys::Vector{<:Real}, Lx::Int, Ly::I
 end #function
 
 """
-Coarse grain density and magnetisation fields given grid and θs
+Coarse grain density and polarisation fields given grid and θs
 """
 function _coarse_grain(cell_list_params::CellListParams, cell_lists::CellLists, θs::Vector{<:Real})
     num_boxes_x = cell_list_params.numBoxesX
@@ -209,7 +209,7 @@ function _coarse_grain(cell_list_params::CellListParams, cell_lists::CellLists, 
 
     #Arrays to store fields
     density_array = zeros(num_boxes_x, num_boxes_y)
-    vec_magnetisation_array = [zeros(2) for i = 1:num_boxes_x, j = 1:num_boxes_y]
+    vec_polarisation_array = [zeros(2) for i = 1:num_boxes_x, j = 1:num_boxes_y]
 
 
     # Loop through boxes
@@ -235,17 +235,19 @@ function _coarse_grain(cell_list_params::CellListParams, cell_lists::CellLists, 
                 this_box_my = this_box_my ./ this_box_num_particles
             end #if
 
-            density_array[i, j] = this_box_num_particles / box_area #Calculate density
-            vec_magnetisation_array[i, j] = [this_box_mx, this_box_my]
+            this_box_density = this_box_num_particles / box_area 
+            density_array[i, j] = this_box_density
+            # vec_polarisation_array[i, j] = [this_box_mx, this_box_my] .* this_box_density
+            vec_polarisation_array[i, j] = [this_box_m, this_box_my]
         end #for j
     end #for i
 
-    return density_array, vec_magnetisation_array
+    return density_array, vec_polarisation_array
 end #function
 
 
 """
-Coarse grain density and magnetisation and nematic S fields given grid and θs
+Coarse grain density and polarisation and nematic S fields given grid and θs
 """
 function _coarse_grain_nematic_too(cell_list_params::CellListParams, cell_lists::CellLists, θs::Vector{<:Real})
     num_boxes_x = cell_list_params.numBoxesX
@@ -256,7 +258,7 @@ function _coarse_grain_nematic_too(cell_list_params::CellListParams, cell_lists:
 
     #Arrays to store fields
     density_array = zeros(num_boxes_x, num_boxes_y)
-    vec_magnetisation_array = [zeros(2) for i = 1:num_boxes_x, j = 1:num_boxes_y]
+    vec_polarisation_array = [zeros(2) for i = 1:num_boxes_x, j = 1:num_boxes_y]
     vec_nematic_array = [zeros(2) for i = 1:num_boxes_x, j = 1:num_boxes_y]
 
 
@@ -289,113 +291,114 @@ function _coarse_grain_nematic_too(cell_list_params::CellListParams, cell_lists:
                 this_box_Sy = this_box_Sy ./ this_box_num_particles
             end #if
 
-            density_array[i, j] = this_box_num_particles / box_area #Calculate density
-            vec_magnetisation_array[i, j] = [this_box_mx, this_box_my]
-            vec_nematic_array[i, j] = [this_box_Sx, this_box_Sy]
+            this_box_density = this_box_num_particles / box_area 
+            density_array[i, j] = this_box_density
+            vec_polarisation_array[i, j] = [this_box_mx, this_box_my] .* this_box_density
+            vec_nematic_array[i, j] = [this_box_Sx, this_box_Sy] .* this_box_density
         end #for j
     end #for i
 
-    return density_array, vec_magnetisation_array, vec_nematic_array
+    return density_array, vec_polarisation_array, vec_nematic_array
 end #function
 
 
 """
-Coarse grain the positions into density, magnetisation and orientation fields.
+Coarse grain the positions into density, polarisation and orientation fields.
 """
 function coarse_grain(xs::Vector{<:Real}, ys::Vector{<:Real}, θs::Vector{<:Real}, Lx::Int, Ly::Int, cell_width::Real; apply_filter=false, filter_strength=2, return_box_size=false)
     cell_list_params, cell_lists = _initialise_grid(xs, ys, Lx, Ly, cell_width)
-    densities, vec_magnetisations = _coarse_grain(cell_list_params, cell_lists, θs)
+    densities, vec_polarisations = _coarse_grain(cell_list_params, cell_lists, θs)
 
     if apply_filter
-        vec_magnetisations_x = [vec_magnetisations[i, j][1] for i = 1:size(densities)[1], j = 1:size(densities)[2]]
-        vec_magnetisations_y = [vec_magnetisations[i, j][2] for i = 1:size(densities)[1], j = 1:size(densities)[2]]
+        vec_polarisations_x = [vec_polarisations[i, j][1] for i = 1:size(densities)[1], j = 1:size(densities)[2]]
+        vec_polarisations_y = [vec_polarisations[i, j][2] for i = 1:size(densities)[1], j = 1:size(densities)[2]]
 
         filtered_densities = imfilter(densities, Kernel.gaussian(filter_strength), "circular")
-        filtered_vec_magnetisations_x = imfilter(vec_magnetisations_x, Kernel.gaussian(filter_strength), "circular")
-        filtered_vec_magnetisations_y = imfilter(vec_magnetisations_y, Kernel.gaussian(filter_strength), "circular")
+        filtered_vec_polarisations_x = imfilter(vec_polarisations_x, Kernel.gaussian(filter_strength), "circular")
+        filtered_vec_polarisations_y = imfilter(vec_polarisations_y, Kernel.gaussian(filter_strength), "circular")
 
-        filtered_magnetisations = similar(densities)
+        filtered_polarisations = similar(densities)
         filtered_orientations = similar(densities)
         for i = 1:cell_list_params.numBoxesX
             for j = 1:cell_list_params.numBoxesY
-                filtered_magnetisations[i, j] = sqrt(filtered_vec_magnetisations_x[i, j]^2 + filtered_vec_magnetisations_y[i, j]^2)
-                filtered_orientations[i, j] = atan(filtered_vec_magnetisations_y[i, j], filtered_vec_magnetisations_x[i, j])
+                filtered_polarisations[i, j] = sqrt(filtered_vec_polarisations_x[i, j]^2 + filtered_vec_polarisations_y[i, j]^2)
+                filtered_orientations[i, j] = atan(filtered_vec_polarisations_y[i, j], filtered_vec_polarisations_x[i, j])
             end #for j
         end #for i
         if return_box_size
-            return filtered_densities, filtered_magnetisations, filtered_orientations, cell_list_params.boxSizeX, cell_list_params.boxSizeY
+            return filtered_densities, filtered_polarisations, filtered_orientations, cell_list_params.boxSizeX, cell_list_params.boxSizeY
         else
-            return filtered_densities, filtered_magnetisations, filtered_orientations
+            return filtered_densities, filtered_polarisations, filtered_orientations
         end #if
     else
-        magnetisations = similar(densities)
+        polarisations = similar(densities)
         orientations = similar(densities)
         for i = 1:cell_list_params.numBoxesX
             for j = 1:cell_list_params.numBoxesY
-                magnetisations[i, j] = sqrt(vec_magnetisations[i, j][1]^2 + vec_magnetisations[i, j][2]^2)
-                orientations[i, j] = atan(vec_magnetisations[i, j][2], vec_magnetisations[i, j][1])
-                vec_magnetisations[i, j] == [0, 0] && (orientations[i, j] = NaN)
+                polarisations[i, j] = sqrt(vec_polarisations[i, j][1]^2 + vec_polarisations[i, j][2]^2)
+                orientations[i, j] = atan(vec_polarisations[i, j][2], vec_polarisations[i, j][1])
+                vec_polarisations[i, j] == [0, 0] && (orientations[i, j] = NaN)
             end #for j
         end #for i
         if return_box_size
-            return densities, magnetisations, orientations, cell_list_params.boxSizeX, cell_list_params.boxSizeY
+            return densities, polarisations, orientations, cell_list_params.boxSizeX, cell_list_params.boxSizeY
         else
-            return densities, magnetisations, orientations
+            return densities, polarisations, orientations
         end #if
     end #if
 
 end #function
 
 """
-Coarse grain the positions into density, magnetisation, orientation and nematic S fields.
+Coarse grain the positions into density, polarisation, orientation and nematic S fields.
 """
 function coarse_grain_nematic_too(xs::Vector{<:Real}, ys::Vector{<:Real}, θs::Vector{<:Real}, Lx::Int, Ly::Int, cell_width::Real; apply_filter=false, filter_strength=2, return_box_size=false)
     cell_list_params, cell_lists = _initialise_grid(xs, ys, Lx, Ly, cell_width)
-    densities, vec_magnetisations, vec_Ss = _coarse_grain_nematic_too(cell_list_params, cell_lists, θs)
+    densities, vec_polarisations, vec_Ss = _coarse_grain_nematic_too(cell_list_params, cell_lists, θs)
 
     if apply_filter
-        vec_magnetisations_x = [vec_magnetisations[i, j][1] for i = 1:size(densities)[1], j = 1:size(densities)[2]]
-        vec_magnetisations_y = [vec_magnetisations[i, j][2] for i = 1:size(densities)[1], j = 1:size(densities)[2]]
+        vec_polarisations_x = [vec_polarisations[i, j][1] for i = 1:size(densities)[1], j = 1:size(densities)[2]]
+        vec_polarisations_y = [vec_polarisations[i, j][2] for i = 1:size(densities)[1], j = 1:size(densities)[2]]
         vec_Ss_x = [vec_Ss[i, j][1] for i = 1:size(densities)[1], j = 1:size(densities)[2]]
         vec_Ss_y = [vec_Ss[i, j][2] for i = 1:size(densities)[1], j = 1:size(densities)[2]]
 
         filtered_densities = imfilter(densities, Kernel.gaussian(filter_strength), "circular")
-        filtered_vec_magnetisations_x = imfilter(vec_magnetisations_x, Kernel.gaussian(filter_strength), "circular")
-        filtered_vec_magnetisations_y = imfilter(vec_magnetisations_y, Kernel.gaussian(filter_strength), "circular")
+        filtered_vec_polarisations_x = imfilter(vec_polarisations_x, Kernel.gaussian(filter_strength), "circular")
+        filtered_vec_polarisations_y = imfilter(vec_polarisations_y, Kernel.gaussian(filter_strength), "circular")
         filtered_vec_Ss_x = imfilter(vec_Ss_x, Kernel.gaussian(filter_strength), "circular")
         filtered_vec_Ss_y = imfilter(vec_Ss_y, Kernel.gaussian(filter_strength), "circular")
 
-        filtered_magnetisations = similar(densities)
+        filtered_polarisations = similar(densities)
         filtered_orientations = similar(densities)
         filtered_Ss = similar(densities)
         for i = 1:cell_list_params.numBoxesX
             for j = 1:cell_list_params.numBoxesY
-                filtered_magnetisations[i, j] = sqrt(filtered_vec_magnetisations_x[i, j]^2 + filtered_vec_magnetisations_y[i, j]^2)
-                filtered_orientations[i, j] = atan(filtered_vec_magnetisations_y[i, j], filtered_vec_magnetisations_x[i, j])
+                filtered_polarisations[i, j] = sqrt(filtered_vec_polarisations_x[i, j]^2 + filtered_vec_polarisations_y[i, j]^2)
+                filtered_orientations[i, j] = atan(filtered_vec_polarisations_y[i, j], filtered_vec_polarisations_x[i, j])
                 filtered_Ss[i, j] = sqrt(filtered_vec_Ss_x[i, j]^2 + filtered_vec_Ss_y[i, j]^2)
             end #for j
         end #for i
         if return_box_size
-            return filtered_densities, filtered_magnetisations, filtered_orientations, filtered_Ss, cell_list_params.boxSizeX, cell_list_params.boxSizeY
+            return filtered_densities, filtered_polarisations, filtered_orientations, filtered_Ss, cell_list_params.boxSizeX, cell_list_params.boxSizeY
         else
-            return filtered_densities, filtered_magnetisations, filtered_orientations, filtered_Ss
+            return filtered_densities, filtered_polarisations, filtered_orientations, filtered_Ss
         end #if
     else
-        magnetisations = similar(densities)
+        polarisations = similar(densities)
         orientations = similar(densities)
         Ss = similar(densities)
         for i = 1:cell_list_params.numBoxesX
             for j = 1:cell_list_params.numBoxesY
-                magnetisations[i, j] = sqrt(vec_magnetisations[i, j][1]^2 + vec_magnetisations[i, j][2]^2)
-                orientations[i, j] = atan(vec_magnetisations[i, j][2], vec_magnetisations[i, j][1])
-                vec_magnetisations[i, j] == [0, 0] && (orientations[i, j] = NaN)
+                polarisations[i, j] = sqrt(vec_polarisations[i, j][1]^2 + vec_polarisations[i, j][2]^2)
+                orientations[i, j] = atan(vec_polarisations[i, j][2], vec_polarisations[i, j][1])
+                vec_polarisations[i, j] == [0, 0] && (orientations[i, j] = NaN)
                 Ss[i, j] = sqrt(vec_Ss[i, j][1]^2 + vec_Ss[i, j][2]^2)
             end #for j
         end #for i
         if return_box_size
-            return densities, magnetisations, orientations, Ss, cell_list_params.boxSizeX, cell_list_params.boxSizeY
+            return densities, polarisations, orientations, Ss, cell_list_params.boxSizeX, cell_list_params.boxSizeY
         else
-            return densities, magnetisations, orientations, Ss
+            return densities, polarisations, orientations, Ss
         end #if
     end #if
 
@@ -438,13 +441,13 @@ function plot_fields(c_array::Matrix{<:Real}, m_array::Matrix{<:Real}, d_array::
     c_hm = heatmap!(c_ax, c_array, colormap=:balance)
     c_cb = Colorbar(c_subgrid[2, 1], c_hm, vertical=false)
 
-    #|Magnetisation|
+    #|polarisation|
     m_ax = Axis(m_subgrid[1, 1], aspect=DataAspect(), title="|m|")
     hidedecorations!(m_ax, label=false)
     m_hm = heatmap!(m_ax, m_array, colormap=:plasma, nan_color=:black)
     m_cb = Colorbar(m_subgrid[2, 1], m_hm, vertical=false)
 
-    #Direction [arg(Magnetisation)]
+    #Direction [arg(polarisation)]
     d_ax = Axis(d_subgrid[1, 1], aspect=DataAspect(), title="arg(m)")
     hidedecorations!(d_ax, label=false)
     d_hm = heatmap!(d_ax, mod.(d_array, 2π), colormap=:hsv, colorrange=(0, 2π), nan_color=:black)
@@ -478,13 +481,13 @@ function plot_fields_nematic_too(c_array::Matrix{<:Real}, m_array::Matrix{<:Real
     c_hm = heatmap!(c_ax, c_array, colormap=:balance)
     c_cb = Colorbar(c_subgrid[2, 1], c_hm, vertical=false)
 
-    #|Magnetisation|
+    #|polarisation|
     m_ax = Axis(m_subgrid[1, 1], aspect=DataAspect(), title="|m|")
     hidedecorations!(m_ax, label=false)
     m_hm = heatmap!(m_ax, m_array, colormap=:plasma, nan_color=:black)
     m_cb = Colorbar(m_subgrid[2, 1], m_hm, vertical=false)
 
-    #Direction [arg(Magnetisation)]
+    #Direction [arg(polarisation)]
     d_ax = Axis(d_subgrid[1, 1], aspect=DataAspect(), title="arg(m)")
     hidedecorations!(d_ax, label=false)
     d_hm = heatmap!(d_ax, mod.(d_array, 2π), colormap=:hsv, colorrange=(0, 2π), nan_color=:black)

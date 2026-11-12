@@ -78,8 +78,8 @@ end #function
 
 function newCellCheck(params::CellListParams, sID::Int64, x::Real, y::Real, prev_x::Real, prev_y::Real)
     #Flag if the particle has changed cell, and store the old cell 
-    oldBox = getScalarBoxID(params,prev_x,prev_y)
-    newBox = getScalarBoxID(params,x,y)
+    oldBox = getScalarBoxID(params, prev_x, prev_y)
+    newBox = getScalarBoxID(params, x, y)
     return (oldBox != newBox) ? sID : 0
 end
 
@@ -136,9 +136,9 @@ function addParticle!(cellLists::CellLists, i::Int64, b::Int64)
 end #function
 
 function getScalarBoxID(cellListParams::CellListParams, x::Real, y::Real)
-    ix = clamp(ceil(Int,x/cellListParams.boxSizeX), 1, cellListParams.numBoxesX)
-    iy = clamp(ceil(Int,y/cellListParams.boxSizeY), 1, cellListParams.numBoxesY)
-    return ix + cellListParams.numBoxesX * (iy-1)
+    ix = clamp(ceil(Int, x / cellListParams.boxSizeX), 1, cellListParams.numBoxesX)
+    iy = clamp(ceil(Int, y / cellListParams.boxSizeY), 1, cellListParams.numBoxesY)
+    return ix + cellListParams.numBoxesX * (iy - 1)
 end #function
 
 function scalarToVectorBoxID(sID::Int, numBoxesX::Int, numBoxesY::Int)
@@ -235,10 +235,9 @@ function _coarse_grain(cell_list_params::CellListParams, cell_lists::CellLists, 
                 this_box_my = this_box_my ./ this_box_num_particles
             end #if
 
-            this_box_density = this_box_num_particles / box_area 
+            this_box_density = this_box_num_particles / box_area
             density_array[i, j] = this_box_density
-            # vec_polarisation_array[i, j] = [this_box_mx, this_box_my] .* this_box_density
-            vec_polarisation_array[i, j] = [this_box_m, this_box_my]
+            vec_polarisation_array[i, j] = [this_box_mx, this_box_my]
         end #for j
     end #for i
 
@@ -291,10 +290,10 @@ function _coarse_grain_nematic_too(cell_list_params::CellListParams, cell_lists:
                 this_box_Sy = this_box_Sy ./ this_box_num_particles
             end #if
 
-            this_box_density = this_box_num_particles / box_area 
+            this_box_density = this_box_num_particles / box_area
             density_array[i, j] = this_box_density
-            vec_polarisation_array[i, j] = [this_box_mx, this_box_my] .* this_box_density
-            vec_nematic_array[i, j] = [this_box_Sx, this_box_Sy] .* this_box_density
+            vec_polarisation_array[i, j] = [this_box_mx, this_box_my]
+            vec_nematic_array[i, j] = [this_box_Sx, this_box_Sy]
         end #for j
     end #for i
 

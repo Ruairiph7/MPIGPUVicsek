@@ -218,26 +218,26 @@ function _coarse_grain(cell_list_params::CellListParams, cell_lists::CellLists, 
             box_id = i + (j - 1) * num_boxes_x
 
             this_box_num_particles = 0
-            this_box_mx = 0
-            this_box_my = 0
+            this_box_px = 0
+            this_box_py = 0
 
             # Loop through this box's cell list
             particle_id = cell_lists.listHeads[box_id]
             while particle_id != 0
                 this_box_num_particles += 1
-                this_box_mx += cos(θs[particle_id])
-                this_box_my += sin(θs[particle_id])
+                this_box_px += cos(θs[particle_id])
+                this_box_py += sin(θs[particle_id])
                 # Move down the list
                 particle_id = cell_lists.downList[particle_id]
             end #while
             if this_box_num_particles != 0
-                this_box_mx = this_box_mx ./ this_box_num_particles
-                this_box_my = this_box_my ./ this_box_num_particles
+                this_box_px = this_box_px ./ this_box_num_particles
+                this_box_py = this_box_py ./ this_box_num_particles
             end #if
 
             this_box_density = this_box_num_particles / box_area
             density_array[i, j] = this_box_density
-            vec_polarisation_array[i, j] = [this_box_mx, this_box_my]
+            vec_polarisation_array[i, j] = [this_box_px, this_box_py]
         end #for j
     end #for i
 
@@ -267,8 +267,8 @@ function _coarse_grain_nematic_too(cell_list_params::CellListParams, cell_lists:
             box_id = i + (j - 1) * num_boxes_x
 
             this_box_num_particles = 0
-            this_box_mx = 0
-            this_box_my = 0
+            this_box_px = 0
+            this_box_py = 0
             this_box_Sx = 0
             this_box_Sy = 0
 
@@ -276,23 +276,23 @@ function _coarse_grain_nematic_too(cell_list_params::CellListParams, cell_lists:
             particle_id = cell_lists.listHeads[box_id]
             while particle_id != 0
                 this_box_num_particles += 1
-                this_box_mx += cos(θs[particle_id])
-                this_box_my += sin(θs[particle_id])
+                this_box_px += cos(θs[particle_id])
+                this_box_py += sin(θs[particle_id])
                 this_box_Sx += cos(2 * θs[particle_id])
                 this_box_Sy += sin(2 * θs[particle_id])
                 # Move down the list
                 particle_id = cell_lists.downList[particle_id]
             end #while
             if this_box_num_particles != 0
-                this_box_mx = this_box_mx ./ this_box_num_particles
-                this_box_my = this_box_my ./ this_box_num_particles
+                this_box_px = this_box_px ./ this_box_num_particles
+                this_box_py = this_box_py ./ this_box_num_particles
                 this_box_Sx = this_box_Sx ./ this_box_num_particles
                 this_box_Sy = this_box_Sy ./ this_box_num_particles
             end #if
 
             this_box_density = this_box_num_particles / box_area
             density_array[i, j] = this_box_density
-            vec_polarisation_array[i, j] = [this_box_mx, this_box_my]
+            vec_polarisation_array[i, j] = [this_box_px, this_box_py]
             vec_nematic_array[i, j] = [this_box_Sx, this_box_Sy]
         end #for j
     end #for i

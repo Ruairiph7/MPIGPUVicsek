@@ -7,6 +7,13 @@ struct Particle
     uid::Int32 # "Unique id"
 end #struct
 
+struct InteractionParticle #Used inside interaction calculation
+    x::Float32
+    y::Float32
+    sinθ::Float32
+    cosθ::Float32
+end #struct
+
 
 # --------- Initialise structures for particle updates --------- #
 

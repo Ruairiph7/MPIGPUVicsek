@@ -1,1 +1,0 @@
-julia --project=../.. ./generateOutputs.jl

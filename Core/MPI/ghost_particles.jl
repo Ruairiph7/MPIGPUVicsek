@@ -1,4 +1,4 @@
-const GHOST_TOLERANCE::Float64 = 1f-6
+const GHOST_TOLERANCE::Float64 = 1e-6
 
 function exchange_ghosts!(
     mpi_bufs,

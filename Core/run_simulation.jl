@@ -79,7 +79,7 @@ function run_simulation(N_total, max_steps;
         dt, R, R², inv_πR², γ, λ, v,
         Lx, Ly, Lx_local,
         x_min_local, x_max_local)
-    if rank == 0 && v*dt >= R
+    if rank == 0 && v * dt >= R
         error("Particles move too fast for migrant detection: v*dt >= R ($(v*dt) >= $R)")
     end #if rank
 

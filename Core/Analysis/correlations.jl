@@ -1,7 +1,6 @@
 using FFTW
-using Statistics
-using DelimitedFiles
 
+include("./load_coords.jl")
 include("./coarse_grain.jl")
 
 function get_pert_fft(f,box_width)

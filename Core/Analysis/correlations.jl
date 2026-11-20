@@ -1,4 +1,5 @@
 using FFTW
+using Statistics
 
 include("./load_coords.jl")
 include("./coarse_grain.jl")

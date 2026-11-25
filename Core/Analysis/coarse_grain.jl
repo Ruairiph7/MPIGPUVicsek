@@ -1,6 +1,5 @@
 using ImageFiltering
 using LinearAlgebra
-using CairoMakie
 
 ###########################################################################
 # Linked-Cell Lists
@@ -49,134 +48,12 @@ function buildCellLists!(cellLists::CellLists, cellListParams::CellListParams, x
     return nothing
 end
 
-function buildCellNeighbours(params::CellListParams)
-    #Construct list of neighbours for each box
-    boxNeighbours = Vector{Int64}[Vector{Int64}(undef, 9) for i = 1:params.numBoxes]
-    for sID = 1:params.numBoxes
-        vID = scalarToVectorBoxID(sID, params.numBoxesX, params.numBoxesY)
-        #Itself
-        boxNeighbours[sID][1] = vectorToScalarBoxID(vID, params.numBoxesX, params.numBoxesY)
-        #Box above
-        boxNeighbours[sID][2] = vectorToScalarBoxID(vID + [0, -1], params.numBoxesX, params.numBoxesY)
-        #Box top right
-        boxNeighbours[sID][3] = vectorToScalarBoxID(vID + [1, -1], params.numBoxesX, params.numBoxesY)
-        #Box right
-        boxNeighbours[sID][4] = vectorToScalarBoxID(vID + [1, 0], params.numBoxesX, params.numBoxesY)
-        #Box bottom right
-        boxNeighbours[sID][5] = vectorToScalarBoxID(vID + [1, 1], params.numBoxesX, params.numBoxesY)
-        #Box below
-        boxNeighbours[sID][6] = vectorToScalarBoxID(vID + [0, 1], params.numBoxesX, params.numBoxesY)
-        #Box bottom left
-        boxNeighbours[sID][7] = vectorToScalarBoxID(vID + [-1, 1], params.numBoxesX, params.numBoxesY)
-        #Box left
-        boxNeighbours[sID][8] = vectorToScalarBoxID(vID + [-1, 0], params.numBoxesX, params.numBoxesY)
-        #Box top left
-        boxNeighbours[sID][9] = vectorToScalarBoxID(vID + [-1, -1], params.numBoxesX, params.numBoxesY)
-    end #for
-    return boxNeighbours
-end #function
-
-function newCellCheck(params::CellListParams, sID::Int64, x::Real, y::Real, prev_x::Real, prev_y::Real)
-    #Flag if the particle has changed cell, and store the old cell 
-    oldBox = getScalarBoxID(params, prev_x, prev_y)
-    newBox = getScalarBoxID(params, x, y)
-    return (oldBox != newBox) ? sID : 0
-end
-
-function updateCellLists!(cellLists::CellLists, params::CellListParams, xs::Vector{<:Real}, ys::Vector{<:Real}, changedBoxFlags::Vector{Int64})
-    #Update cell lists
-    # changedBoxIndices = ThreadsX.findall(!iszero, changedBoxFlags)
-    changedBoxIndices = findall(!iszero, changedBoxFlags)
-    for particleIdx = changedBoxIndices
-        oldBox = changedBoxFlags[particleIdx]
-        newBox = getScalarBoxID(params, xs[particleIdx], ys[particleIdx])
-        removeParticle!(cellLists, particleIdx, oldBox)
-        addParticle!(cellLists, particleIdx, newBox)
-    end #for particleIdx
-end
-
-
-function removeParticle!(cellLists::CellLists, i::Int64, b::Int64)
-    #Remove particle i from it's box
-    ## b = current box ID for particle i
-    nodeBelow = cellLists.downList[i]
-    nodeAbove = cellLists.upList[i]
-    if (nodeBelow != 0) && (nodeAbove != 0) #Node is in the middle
-        cellLists.downList[nodeAbove] = nodeBelow
-        cellLists.upList[nodeBelow] = nodeAbove
-    elseif (nodeBelow != 0) && (nodeAbove == 0) #Node is at the top with more below
-        cellLists.listHeads[b] = nodeBelow
-        cellLists.upList[nodeBelow] = 0
-    elseif (nodeBelow == 0) && (nodeAbove != 0) #Node is at the bottom with more above
-        cellLists.listTails[b] = nodeAbove
-        cellLists.downList[nodeAbove] = 0
-    else                                        #It is the only node
-        cellLists.listHeads[b] = 0
-        cellLists.listTails[b] = 0
-    end #if
-    return nothing
-end #function
-
-function addParticle!(cellLists::CellLists, i::Int64, b::Int64)
-    #Add particle i to the bottom of a new box
-    ## b = new box ID for particle i
-    oldTail = cellLists.listTails[b]
-    if oldTail != 0                  #There was a particle in the box before
-        cellLists.downList[oldTail] = i
-        cellLists.downList[i] = 0
-        cellLists.upList[i] = oldTail
-        cellLists.listTails[b] = i
-    else
-        cellLists.listHeads[b] = i
-        cellLists.listTails[b] = i
-        cellLists.downList[i] = 0
-        cellLists.upList[i] = 0
-    end #if
-    return nothing
-end #function
-
 function getScalarBoxID(cellListParams::CellListParams, x::Real, y::Real)
     ix = clamp(ceil(Int, x / cellListParams.boxSizeX), 1, cellListParams.numBoxesX)
     iy = clamp(ceil(Int, y / cellListParams.boxSizeY), 1, cellListParams.numBoxesY)
     return ix + cellListParams.numBoxesX * (iy - 1)
 end #function
 
-function scalarToVectorBoxID(sID::Int, numBoxesX::Int, numBoxesY::Int)
-    vID = Vector{Int64}(undef, 2)
-    #x component:
-    if sID % numBoxesX != 0
-        vID[1] = sID % numBoxesX
-    else
-        vID[1] = numBoxesX
-    end #if
-    #y component:
-    for j = 1:numBoxesY
-        if (j - 1) * numBoxesX < sID <= j * numBoxesX
-            vID[2] = j
-            break
-        end #if
-    end #for j
-    return vID
-end #function
-
-function vectorToScalarBoxID(vID::Vector{<:Int}, numBoxesX::Int, numBoxesY::Int)
-    #Apply PBCs (for neighbours outside the grid)
-    if vID[2] == numBoxesY + 1 #If above box, correct down
-        true_vID_y = 1
-    elseif vID[2] == 0 #If below box, correct up
-        true_vID_y = numBoxesY
-    else
-        true_vID_y = vID[2]
-    end #if
-    if vID[1] == numBoxesX + 1 #If to right, correct left
-        true_vID_x = 1
-    elseif vID[1] == 0 #If to left, correct right
-        true_vID_x = numBoxesX
-    else
-        true_vID_x = vID[1]
-    end #if
-    return true_vID_x + numBoxesX * (true_vID_y - 1)
-end #function
 ###########################################################################
 ###########################################################################
 ###########################################################################
@@ -218,8 +95,8 @@ function _coarse_grain(cell_list_params::CellListParams, cell_lists::CellLists, 
             box_id = i + (j - 1) * num_boxes_x
 
             this_box_num_particles = 0
-            this_box_px = 0
-            this_box_py = 0
+            this_box_px = 0.0
+            this_box_py = 0.0
 
             # Loop through this box's cell list
             particle_id = cell_lists.listHeads[box_id]
@@ -402,107 +279,3 @@ function coarse_grain_nematic_too(xs::Vector{<:Real}, ys::Vector{<:Real}, θs::V
     end #if
 
 end #function
-
-
-###########################################################################
-###########################################################################
-###########################################################################
-
-###########################################################################
-# Plotting
-###########################################################################
-
-function plot_fields(c_array::Matrix{<:Real}, m_array::Matrix{<:Real}, d_array::Matrix{<:Real})
-
-    # WARN: Maybe transpose the arrays to get the correct orientations
-    fig = Figure()
-    c_subgrid = GridLayout()
-    m_subgrid = GridLayout()
-    d_subgrid = GridLayout()
-    fig.layout[1, 1] = c_subgrid
-    fig.layout[1, 2] = m_subgrid
-    fig.layout[2, 1] = d_subgrid
-    rowsize!(fig.layout, 1, Relative(4 / 7))
-
-    #Colorwheel
-    w_ax = PolarAxis(fig[2, 2])
-    hidedecorations!(w_ax)
-    rs = range(0, 1, 300)
-    ϕs = range(0, 2π, 600)
-    ϕmat = [ϕ for r in rs, ϕ in ϕs]
-    rmat = [r for r in rs, ϕ in ϕs]
-    w_ax.rlimits = (0, 1)
-    surface!(w_ax, ϕmat, rmat, zeros(300, 600), color=ϕmat, colormap=:hsv, shading=false)
-
-    #Concentration
-    c_ax = Axis(c_subgrid[1, 1], aspect=DataAspect(), title="c")
-    hidedecorations!(c_ax, label=false)
-    c_hm = heatmap!(c_ax, c_array, colormap=:balance)
-    c_cb = Colorbar(c_subgrid[2, 1], c_hm, vertical=false)
-
-    #|polarisation|
-    m_ax = Axis(m_subgrid[1, 1], aspect=DataAspect(), title="|m|")
-    hidedecorations!(m_ax, label=false)
-    m_hm = heatmap!(m_ax, m_array, colormap=:plasma, nan_color=:black)
-    m_cb = Colorbar(m_subgrid[2, 1], m_hm, vertical=false)
-
-    #Direction [arg(polarisation)]
-    d_ax = Axis(d_subgrid[1, 1], aspect=DataAspect(), title="arg(m)")
-    hidedecorations!(d_ax, label=false)
-    d_hm = heatmap!(d_ax, mod.(d_array, 2π), colormap=:hsv, colorrange=(0, 2π), nan_color=:black)
-
-    return fig
-end #function
-
-function plot_fields(xs::Vector{<:Real}, ys::Vector{<:Real}, θs::Vector{<:Real}, Lx::Int, Ly::Int, cell_width::Real; apply_filter=false, filter_strength=2)
-    c_array, m_array, d_array = coarse_grain(xs, ys, θs, Lx, Ly, cell_width, apply_filter=apply_filter, filter_strength=filter_strength)
-    fig = plot_fields(c_array, m_array, d_array)
-    return fig
-end #function
-
-function plot_fields_nematic_too(c_array::Matrix{<:Real}, m_array::Matrix{<:Real}, d_array::Matrix{<:Real}, S_array::Matrix{<:Real})
-
-    # WARN: Maybe transpose the arrays to get the correct orientations
-    fig = Figure()
-    c_subgrid = GridLayout()
-    m_subgrid = GridLayout()
-    d_subgrid = GridLayout()
-    S_subgrid = GridLayout()
-    fig.layout[1, 1] = c_subgrid
-    fig.layout[1, 2] = m_subgrid
-    fig.layout[2, 1] = d_subgrid
-    fig.layout[2, 2] = S_subgrid
-    rowsize!(fig.layout, 1, Relative(4 / 7))
-
-    #Concentration
-    c_ax = Axis(c_subgrid[1, 1], aspect=DataAspect(), title="c")
-    hidedecorations!(c_ax, label=false)
-    c_hm = heatmap!(c_ax, c_array, colormap=:balance)
-    c_cb = Colorbar(c_subgrid[2, 1], c_hm, vertical=false)
-
-    #|polarisation|
-    m_ax = Axis(m_subgrid[1, 1], aspect=DataAspect(), title="|m|")
-    hidedecorations!(m_ax, label=false)
-    m_hm = heatmap!(m_ax, m_array, colormap=:plasma, nan_color=:black)
-    m_cb = Colorbar(m_subgrid[2, 1], m_hm, vertical=false)
-
-    #Direction [arg(polarisation)]
-    d_ax = Axis(d_subgrid[1, 1], aspect=DataAspect(), title="arg(m)")
-    hidedecorations!(d_ax, label=false)
-    d_hm = heatmap!(d_ax, mod.(d_array, 2π), colormap=:hsv, colorrange=(0, 2π), nan_color=:black)
-
-    #S
-    S_ax = Axis(S_subgrid[1, 1], aspect=DataAspect(), title="S")
-    hidedecorations!(S_ax, label=false)
-    S_hm = heatmap!(S_ax, S_array, colormap=:plasma, nan_color=:black)
-    S_cb = Colorbar(S_subgrid[2, 1], S_hm, vertical=false)
-
-    return fig
-end #function
-
-function plot_fields_nematic_too(xs::Vector{<:Real}, ys::Vector{<:Real}, θs::Vector{<:Real}, Lx::Int, Ly::Int, cell_width::Real; apply_filter=false, filter_strength=2)
-    c_array, m_array, d_array, S_array = coarse_grain_nematic_too(xs, ys, θs, Lx, Ly, cell_width, apply_filter=apply_filter, filter_strength=filter_strength)
-    fig = plot_fields_nematic_too(c_array, m_array, d_array, S_array)
-    return fig
-end #function
-

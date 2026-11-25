@@ -98,15 +98,16 @@ function get_S_radial(S,kxs,kys)
 
     ks = [hypot(kxs[i],kys[j]) for i in 1:Nx, j in 1:Ny]
     dk = max(kxs[2]-kxs[1], kys[2]-kys[1])
-    k_max = min(maximum(abs,kxs), maximum(abs,kys))
+    k_max = min(maximum(abs,kxs), maximum(abs,kys)) #Nyquist cutoff
 
     get_bin_idx(k_ij) = floor(Int, k_ij/dk + 0.5) + 1
-    n_bins = get_bin_idx(k_max)
+    n_bins = get_bin_idx(k_max) - 1 #Only keep bins fully within Nyquist cutoff
 
     sums = zeros(n_bins)
     counts = zeros(Int,n_bins)
     for j in 1:Ny, i in 1:Nx
         bidx = get_bin_idx(ks[i,j])
+        bidx > n_bins && continue #Skip corners outside cutoff
         sums[bidx] += S[i,j]
         counts[bidx] += 1
     end
